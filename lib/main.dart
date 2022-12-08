@@ -120,15 +120,15 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: ListView(
+      body: Column(
             children: [
-              scriptureWidget(),
               TextFormField(
                 decoration: const InputDecoration(
                   border: UnderlineInputBorder(),
                   labelText: 'Enter a comma-separated list of scriptures',
                 ),
               ),
+              Expanded(child: scriptureWidget()),
           ],
           ),
     );
