@@ -89,6 +89,79 @@ class _ScriptureItemState extends State<ScriptureItem> {
   }
 }
 
+class ScriptureForm extends StatefulWidget {
+  const ScriptureForm({super.key});
+
+  @override
+  ScriptureFormState createState() {
+    return ScriptureFormState();
+  }
+}
+class ScriptureFormState extends State<ScriptureForm> {
+  // Create a global key that uniquely identifies the Form widget
+  // and allows validation of the form.
+  //
+  // Note: This is a GlobalKey<FormState>,
+  // not a GlobalKey<MyCustomFormState>.
+  final _formKey = GlobalKey<FormState>();
+  final myController = TextEditingController();
+  String display = "";
+
+  void getResult(String text) {
+    List<String> result = text.split(',');
+    display = "Okay! Getting ";
+    for(int i = 0; i < result.length - 1; i++){
+      display = "$display${result[i]}, ";
+    }
+    display = "${display}and ${result.last} for you!";
+  }
+
+  @override
+  void dispose() {
+    myController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Build a Form widget using the _formKey created above.
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: myController,
+            decoration: const InputDecoration(
+              labelText: "Enter comma-separated list of Scriptures",
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter some text';
+              }
+              return null;
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  // If the form is valid, ...
+                  getResult(myController.text);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(display)),
+                  );
+                }
+              },
+              child: const Text('Submit'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
@@ -122,12 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
             children: [
-              TextFormField(
-                decoration: const InputDecoration(
-                  border: UnderlineInputBorder(),
-                  labelText: 'Enter a comma-separated list of scriptures',
-                ),
-              ),
+              const ScriptureForm(),
               Expanded(child: scriptureWidget()),
           ],
           ),
