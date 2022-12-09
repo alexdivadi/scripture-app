@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+
+storeText(String text) async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  prefs.setString('text', text);
+}
+Future<String> loadText() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String stringValue = prefs.getString('text') ?? "Nothing stored";
+  return stringValue;
+}
 
 Future<List<Scripture>> getScriptureList() async {
   List<Scripture> scriptureList = [
@@ -15,12 +26,8 @@ Future<Scripture> fetchScripture(String reference) async {
       .get(Uri.parse('https://bible-api.com/$reference'));
 
   if (response.statusCode == 200) {
-    // If the server did return a 200 OK response,
-    // then parse the JSON.
     return Scripture.fromJson(jsonDecode(response.body));
   } else {
-    // If the server did not return a 200 OK response,
-    // then throw an exception.
     throw Exception('Failed to load scripture');
   }
 }
@@ -60,7 +67,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.orange,
       ),
-      home: const MyHomePage(title: 'Home Page'),
+      home: const MyHomePage(title: 'Scripture App'),
     );
   }
 }
@@ -69,12 +76,12 @@ class ScriptureItem extends StatefulWidget {
   final String text;
   final String reference;
 
-  ScriptureItem({Key? key, required this.text, required this.reference}) : super(key: key);
+  const ScriptureItem({Key? key, required this.text, required this.reference}) : super(key: key);
 
   @override
-  _ScriptureItemState createState() => _ScriptureItemState();
+  ScriptureItemState createState() => ScriptureItemState();
 }
-class _ScriptureItemState extends State<ScriptureItem> {
+class ScriptureItemState extends State<ScriptureItem> {
   bool? _value = false;
 
   @override
@@ -105,17 +112,29 @@ class ScriptureFormState extends State<ScriptureForm> {
   // not a GlobalKey<MyCustomFormState>.
   final _formKey = GlobalKey<FormState>();
   final myController = TextEditingController();
-  String display = "";
+  late String display;
 
   void getResult(String text) {
     List<String> result = text.split(',');
     display = "Okay! Getting ";
-    for(int i = 0; i < result.length - 1; i++){
-      display = "$display${result[i]}, ";
+
+    if (result.length > 1) {
+      for (int i = 0; i < result.length - 1; i++) {
+        display = "$display${result[i]}, ";
+      }
+      display = "$display and ${result.last}";
+    } else {
+      display = "$display ${result.last}";
     }
-    display = "${display}and ${result.last} for you!";
+    display = "$display for you!";
   }
 
+  @override
+  void initState() {
+    super.initState();
+    //getResult(text);
+  }
+  
   @override
   void dispose() {
     myController.dispose();
@@ -149,6 +168,7 @@ class ScriptureFormState extends State<ScriptureForm> {
                 if (_formKey.currentState!.validate()) {
                   // If the form is valid, ...
                   getResult(myController.text);
+                  storeText(myController.text);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(display)),
                   );
@@ -173,11 +193,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late Future<List<Scripture>> scriptureList;
+  late Future<String> storedText;
 
   @override
   void initState() {
     super.initState();
     scriptureList = getScriptureList();
+    storedText = loadText();
   }
 
   @override
@@ -193,12 +215,15 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: Column(
+      body: Padding (
+            padding: const EdgeInsets.all(32),
+            child: Column(
             children: [
               const ScriptureForm(),
               Expanded(child: scriptureWidget()),
           ],
           ),
+      ),
     );
   }
 
@@ -230,10 +255,20 @@ class _MyHomePageState extends State<MyHomePage> {
             appBar: AppBar(
               title: const Text("Saved"),
             ),
-            body: const Center(
-              child: Text("nothing here yet"),
+            body: Center(
+              child: FutureBuilder<String>(
+                  future: storedText,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return Text(snapshot.data!);
+                    } else if (snapshot.hasError) {
+                      return Text('${snapshot.error}');
+                    }
+                    return const CircularProgressIndicator();
+                  }
             ),
-          );
+          ),
+        );
         }
       )
     );
