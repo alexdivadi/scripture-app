@@ -72,28 +72,12 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class ScriptureItem extends StatefulWidget {
-  final String text;
+class ScriptureItem {
   final String reference;
+  String text = "";
+  bool selected = false;
 
-  const ScriptureItem({Key? key, required this.text, required this.reference}) : super(key: key);
-
-  @override
-  ScriptureItemState createState() => ScriptureItemState();
-}
-class ScriptureItemState extends State<ScriptureItem> {
-  bool? _value = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Checkbox(
-            value: _value,
-            onChanged: (newValue) => setState(() => _value = newValue)),
-      title: Text(widget.reference),
-      subtitle: Text(widget.text),
-    );
-  }
+  ScriptureItem(this.reference);
 }
 
 class ScriptureForm extends StatefulWidget {
@@ -194,12 +178,47 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late Future<List<Scripture>> scriptureList;
   late Future<String> storedText;
+  List<ScriptureItem> savedScriptures = [];
 
   @override
   void initState() {
     super.initState();
     scriptureList = getScriptureList();
     storedText = loadText();
+    populateScriptureList();
+  }
+
+  void populateScriptureList() {
+    savedScriptures.add(ScriptureItem("Col 1:17"));
+    savedScriptures.add(ScriptureItem("Jn 8:3"));
+  }
+
+  Widget _getScriptureItemTile(BuildContext context, int index) {
+    return ListTile(
+      selected: savedScriptures[index].selected,
+          onTap: (){
+            if (savedScriptures.any((item) => item.selected)){
+              setState(() {
+                savedScriptures[index].selected = !savedScriptures[index].selected;
+              });
+            } else {
+              showDialog<String>(
+                context: context,
+                builder: (BuildContext context) {
+                  return SimpleDialog(
+                    title: Text(savedScriptures[index].text),
+                  );
+                }
+              );
+            }
+          },
+          onLongPress: (){
+            setState(() {
+              savedScriptures[index].selected = true;
+            });
+          },
+          title: Text(savedScriptures[index].reference),
+    );
   }
 
   @override
@@ -219,8 +238,19 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: const EdgeInsets.all(32),
             child: Column(
             children: [
-              const ScriptureForm(),
               Expanded(child: scriptureWidget()),
+              FloatingActionButton(
+                backgroundColor: Colors.lightBlue,
+                onPressed: () => showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return const AlertDialog(
+                          title: Text("Add a Scripture"),
+                            content: ScriptureForm(),
+                        );
+                      }),
+                child: const Icon(Icons.add),
+              )
           ],
           ),
       ),
@@ -233,10 +263,9 @@ class _MyHomePageState extends State<MyHomePage> {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           return ListView.builder(
-              itemCount: snapshot.data!.length,
+              itemCount: savedScriptures.length,
               itemBuilder: (context, index) {
-                Scripture scripture = snapshot.data![index];
-                return ScriptureItem(text: scripture.text, reference: scripture.reference);
+                return _getScriptureItemTile(context, index);
               }
           );
         } else if (snapshot.hasError) {
@@ -248,6 +277,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _pushScreen() {
+    storedText = loadText();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) {
