@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:isar/isar.dart';
 import 'collections/scripture.dart';
@@ -53,10 +54,9 @@ class FutureItemTile extends StatefulWidget {
 class _FutureItemTileState extends State<FutureItemTile> {
   bool isSelected = false;
 
-
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    return  ListTile(
         selected: isSelected,
         onTap: (){
           if (false){
@@ -91,7 +91,7 @@ class _FutureItemTileState extends State<FutureItemTile> {
           });
         },*/
         title: Text(widget.data.reference),
-      );
+    );
     }
 }
 
@@ -248,7 +248,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           title: const Text("Add a Scripture"),
                           content: ScriptureForm(isar: widget.isar),
                         );
-                      });
+                      }
+                  );
                   setState(() {
                     scriptureList = refreshScriptureList();
                   });
@@ -269,7 +270,26 @@ class _MyHomePageState extends State<MyHomePage> {
           return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
-                return FutureItemTile(data: snapshot.data![index]);
+                return Slidable(
+                    actionPane: const SlidableDrawerActionPane(),
+                    actionExtentRatio: 0.25,
+                    secondaryActions: <Widget>[
+                      IconSlideAction(
+                        caption: 'Delete',
+                        color: Colors.red,
+                        icon: Icons.delete,
+                        onTap: () async {
+                          await widget.isar.writeTxn(() async {
+                            await widget.isar.scriptures.delete(snapshot.data![index].scriptureId);
+                          });
+                          setState(() {
+                            scriptureList = refreshScriptureList();
+                          });
+                          },
+                        ),
+                      ],
+                    child: FutureItemTile(data: snapshot.data![index]),
+                );
               }
           );
         } else if (snapshot.hasError) {
