@@ -58,15 +58,7 @@ class _FutureItemTileState extends State<FutureItemTile> {
   Widget build(BuildContext context) {
     return  ListTile(
         selected: isSelected,
-        onTap: (){
-          if (false){
-            // if any other tiles are selected, allow multiple select
-            // stretch goal
-            /*setState(() {
-              selectedTiles[index].selected = !selectedTiles[index].selected;
-            });*/
-          } else {
-            showDialog<String>(
+        onTap: () => showDialog<String>(
                 context: context,
                 builder: (BuildContext context) {
                   return SimpleDialog(
@@ -76,20 +68,13 @@ class _FutureItemTileState extends State<FutureItemTile> {
                           Padding(
                             padding: const EdgeInsets.all(10),
                             child: Text(widget.data.text),),
-                          Text(widget.data.reference),
+                          Text("${widget.data.reference} (${widget.data.translation})"),
                         ]
                       )
                     ],
                   );
                 }
-            );
-          }
-        },
-        /*onLongPress: (){
-          setState(() {
-            isSelected = true;
-          });
-        },*/
+            ),
         title: Text(widget.data.reference),
     );
     }
@@ -220,23 +205,23 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                scriptureList = refreshScriptureList();
-              });
-              _pushScreen();
-            },
-            icon: const Icon(Icons.list),
-            tooltip: 'Scriptures',
-          ),
-        ],
       ),
-      body: Padding (
+      body: RefreshIndicator(
+        onRefresh: _pullRefresh,
+        child: Padding (
             padding: const EdgeInsets.all(32),
             child: Column(
             children: [
+              Container(padding: const EdgeInsets.only(bottom: 20),
+                alignment: Alignment.topLeft,
+                child: const Text("Saved Scriptures",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    overflow: TextOverflow.ellipsis,
+                    fontSize: 30,
+                  ),
+                ),
+              ),
               Expanded(child: scriptureWidget()),
               FloatingActionButton(
                 backgroundColor: Colors.lightBlue,
@@ -244,22 +229,28 @@ class _MyHomePageState extends State<MyHomePage> {
                   showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return AlertDialog(
+                        return SimpleDialog(
                           title: const Text("Add a Scripture"),
-                          content: ScriptureForm(isar: widget.isar),
+                          children: [
+                            Padding(padding: const EdgeInsets.all(20),
+                              child: ScriptureForm(isar: widget.isar),
+                            )],
                         );
                       }
                   );
-                  setState(() {
-                    scriptureList = refreshScriptureList();
-                  });
                 },
                 child: const Icon(Icons.add),
               )
           ],
           ),
       ),
+    ),
     );
+  }
+  Future<void> _pullRefresh() async {
+    setState(() {
+      scriptureList = refreshScriptureList();
+    });
   }
 
   Widget scriptureWidget() {
@@ -300,30 +291,4 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _pushScreen() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text("Saved"),
-            ),
-            body: Center(
-              child: FutureBuilder<List<Scripture>>(
-                  future: scriptureList,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      return Text(snapshot.data![0].reference);
-                    } else if (snapshot.hasError) {
-                      return Text('${snapshot.error}');
-                    }
-                    return const CircularProgressIndicator();
-                  }
-            ),
-          ),
-        );
-        }
-      )
-    );
-  }
 }
