@@ -1,63 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:isar/isar.dart';
+import 'collections/scripture.dart';
 
-storeText(String text) async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  prefs.setString('text', text);
-}
-Future<String> loadText() async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String stringValue = prefs.getString('text') ?? "Nothing stored";
-  return stringValue;
-}
-
-Future<List<Scripture>> getScriptureList() async {
-  List<Scripture> scriptureList = [
-    await fetchScripture("col1:17"),
-    await fetchScripture("john3:16"),
-  ];
-  return scriptureList;
-}
-
-Future<Scripture> fetchScripture(String reference) async {
+Future<Map<String, dynamic>> fetchScripture(String reference) async {
   final response = await http
       .get(Uri.parse('https://bible-api.com/$reference'));
 
   if (response.statusCode == 200) {
-    return Scripture.fromJson(jsonDecode(response.body));
+    return jsonDecode(response.body);
   } else {
     throw Exception('Failed to load scripture');
   }
 }
 
-class Scripture{
-  final String reference;
-  final String text;
-  final String translationName;
-
-  const Scripture({
-    required this.reference,
-    required this.text,
-    required this.translationName,
-  });
-
-  factory Scripture.fromJson(Map<String, dynamic> json) {
-    return Scripture(
-      reference: json['reference'],
-      text: json['text'],
-      translationName: json['translation_name'],
-    );
-  }
-}
-
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final dir = await getApplicationSupportDirectory();
+  final isar = await Isar.open(
+      [ScriptureSchema],
+      directory: dir.path,
+      inspector: true);
+  runApp(MyApp(isar: isar));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Isar isar;
+  const MyApp({super.key, required this.isar});
 
   // This widget is the root of your application.
   @override
@@ -67,21 +39,50 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.orange,
       ),
-      home: const MyHomePage(title: 'Scripture App'),
+      home: MyHomePage(title: 'Scripture App', isar: isar),
     );
   }
 }
 
-class ScriptureItem {
-  final String reference;
-  String text = "";
-  bool selected = false;
+class FutureItemTile extends StatefulWidget {
+  final Scripture data;
+  const FutureItemTile({super.key, required this.data});
 
-  ScriptureItem(this.reference);
+  @override
+  _FutureItemTileState createState() => _FutureItemTileState();
+}
+class _FutureItemTileState extends State<FutureItemTile> {
+  bool isSelected = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return  ListTile(
+        selected: isSelected,
+        onTap: () => showDialog<String>(
+                context: context,
+                builder: (BuildContext context) {
+                  return SimpleDialog(
+                    children: [
+                      Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Text(widget.data.text),),
+                          Text("${widget.data.reference} (${widget.data.translation})"),
+                        ]
+                      )
+                    ],
+                  );
+                }
+            ),
+        title: Text(widget.data.reference),
+    );
+    }
 }
 
 class ScriptureForm extends StatefulWidget {
-  const ScriptureForm({super.key});
+  final Isar isar;
+  const ScriptureForm({super.key, required this.isar});
 
   @override
   ScriptureFormState createState() {
@@ -89,34 +90,42 @@ class ScriptureForm extends StatefulWidget {
   }
 }
 class ScriptureFormState extends State<ScriptureForm> {
-  // Create a global key that uniquely identifies the Form widget
-  // and allows validation of the form.
-  //
-  // Note: This is a GlobalKey<FormState>,
-  // not a GlobalKey<MyCustomFormState>.
   final _formKey = GlobalKey<FormState>();
   final myController = TextEditingController();
   late String display;
 
-  void getResult(String text) {
+  void getResult(String text) async {
     List<String> result = text.split(',');
-    display = "Okay! Getting ";
-
-    if (result.length > 1) {
-      for (int i = 0; i < result.length - 1; i++) {
-        display = "$display${result[i]}, ";
-      }
-      display = "$display and ${result.last}";
-    } else {
-      display = "$display ${result.last}";
+    if (result.isEmpty) {
+      display = "Error getting scripture";
+      return;
     }
-    display = "$display for you!";
+
+    for (int i = 0; i < result.length; i++) {
+      try {
+        final json = await fetchScripture(result[i]);
+
+        final newScripture = Scripture()
+          ..reference = json['reference']
+          ..text = json['text']
+          ..translation = json['translation_name'];
+
+        await widget.isar.writeTxn(() async {
+          await widget.isar.scriptures.put(newScripture);
+        });
+        display = "Added ${result[i]}";
+      } catch (e) {
+        display = "A scripture was not found";
+        break;
+      }
+    }
+
   }
 
   @override
   void initState() {
     super.initState();
-    //getResult(text);
+    display = "Running";
   }
   
   @override
@@ -152,10 +161,10 @@ class ScriptureFormState extends State<ScriptureForm> {
                 if (_formKey.currentState!.validate()) {
                   // If the form is valid, ...
                   getResult(myController.text);
-                  storeText(myController.text);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(display)),
                   );
+                  Navigator.of(context).pop();
                 }
               },
               child: const Text('Submit'),
@@ -167,7 +176,8 @@ class ScriptureFormState extends State<ScriptureForm> {
   }
 }
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  final Isar isar;
+  const MyHomePage({super.key, required this.title, required this.isar});
 
   final String title;
 
@@ -177,48 +187,17 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late Future<List<Scripture>> scriptureList;
-  late Future<String> storedText;
-  List<ScriptureItem> savedScriptures = [];
 
   @override
   void initState() {
     super.initState();
-    scriptureList = getScriptureList();
-    storedText = loadText();
-    populateScriptureList();
+    scriptureList = refreshScriptureList();
   }
 
-  void populateScriptureList() {
-    savedScriptures.add(ScriptureItem("Col 1:17"));
-    savedScriptures.add(ScriptureItem("Jn 8:3"));
-  }
-
-  Widget _getScriptureItemTile(BuildContext context, int index) {
-    return ListTile(
-      selected: savedScriptures[index].selected,
-          onTap: (){
-            if (savedScriptures.any((item) => item.selected)){
-              setState(() {
-                savedScriptures[index].selected = !savedScriptures[index].selected;
-              });
-            } else {
-              showDialog<String>(
-                context: context,
-                builder: (BuildContext context) {
-                  return SimpleDialog(
-                    title: Text(savedScriptures[index].text),
-                  );
-                }
-              );
-            }
-          },
-          onLongPress: (){
-            setState(() {
-              savedScriptures[index].selected = true;
-            });
-          },
-          title: Text(savedScriptures[index].reference),
-    );
+  Future<List<Scripture>> refreshScriptureList () async {
+    return await widget.isar.scriptures.filter()
+        .listNameMatches("default")
+        .findAll();
   }
 
   @override
@@ -226,35 +205,52 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        actions: [
-          IconButton(
-            onPressed: _pushScreen,
-            icon: const Icon(Icons.list),
-            tooltip: 'Scriptures',
-          ),
-        ],
       ),
-      body: Padding (
+      body: RefreshIndicator(
+        onRefresh: _pullRefresh,
+        child: Padding (
             padding: const EdgeInsets.all(32),
             child: Column(
             children: [
+              Container(padding: const EdgeInsets.only(bottom: 20),
+                alignment: Alignment.topLeft,
+                child: const Text("Saved Scriptures",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    overflow: TextOverflow.ellipsis,
+                    fontSize: 30,
+                  ),
+                ),
+              ),
               Expanded(child: scriptureWidget()),
               FloatingActionButton(
                 backgroundColor: Colors.lightBlue,
-                onPressed: () => showDialog(
+                onPressed: () {
+                  showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return const AlertDialog(
-                          title: Text("Add a Scripture"),
-                            content: ScriptureForm(),
+                        return SimpleDialog(
+                          title: const Text("Add a Scripture"),
+                          children: [
+                            Padding(padding: const EdgeInsets.all(20),
+                              child: ScriptureForm(isar: widget.isar),
+                            )],
                         );
-                      }),
+                      }
+                  );
+                },
                 child: const Icon(Icons.add),
               )
           ],
           ),
       ),
+    ),
     );
+  }
+  Future<void> _pullRefresh() async {
+    setState(() {
+      scriptureList = refreshScriptureList();
+    });
   }
 
   Widget scriptureWidget() {
@@ -263,9 +259,28 @@ class _MyHomePageState extends State<MyHomePage> {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           return ListView.builder(
-              itemCount: savedScriptures.length,
+              itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
-                return _getScriptureItemTile(context, index);
+                return Slidable(
+                    actionPane: const SlidableDrawerActionPane(),
+                    actionExtentRatio: 0.25,
+                    secondaryActions: <Widget>[
+                      IconSlideAction(
+                        caption: 'Delete',
+                        color: Colors.red,
+                        icon: Icons.delete,
+                        onTap: () async {
+                          await widget.isar.writeTxn(() async {
+                            await widget.isar.scriptures.delete(snapshot.data![index].scriptureId);
+                          });
+                          setState(() {
+                            scriptureList = refreshScriptureList();
+                          });
+                          },
+                        ),
+                      ],
+                    child: FutureItemTile(data: snapshot.data![index]),
+                );
               }
           );
         } else if (snapshot.hasError) {
@@ -276,31 +291,4 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _pushScreen() {
-    storedText = loadText();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text("Saved"),
-            ),
-            body: Center(
-              child: FutureBuilder<String>(
-                  future: storedText,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      return Text(snapshot.data!);
-                    } else if (snapshot.hasError) {
-                      return Text('${snapshot.error}');
-                    }
-                    return const CircularProgressIndicator();
-                  }
-            ),
-          ),
-        );
-        }
-      )
-    );
-  }
 }
