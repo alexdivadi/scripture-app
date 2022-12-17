@@ -97,7 +97,7 @@ class ScriptureFormState extends State<ScriptureForm> {
   final myController = TextEditingController();
   late String display;
 
-  void getResult(String text) async {
+  Future<void> getResult(String text) async {
     debugPrint(text);
     List<String> result = text.split(',');
     if (result.isEmpty) {
@@ -142,9 +142,7 @@ class ScriptureFormState extends State<ScriptureForm> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Build a Form widget using the _formKey created above.
-    return Form(
+  Widget build(BuildContext context) => Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,23 +162,22 @@ class ScriptureFormState extends State<ScriptureForm> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_formKey.currentState!.validate()) {
                   // If the form is valid, ...
-                  getResult(myController.text);
+                  await getResult(myController.text);
+                  // TODO: address lint warning about async gap
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(display)),
                   );
 
                   // TODO: Better fix than this
-                  Future.delayed(const Duration(seconds: 3), () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        // TODO: gorouter, don't pass around isar, riverpod
-                          builder: (context) => MyHomePage(title: 'Scripture App', isar: widget.isar)
-                      ),
-                    );
-                  });
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      // TODO: gorouter, don't pass around isar, riverpod
+                        builder: (context) => MyHomePage(title: 'Scripture App', isar: widget.isar)
+                    ),
+                  );
 
                 }
               },
@@ -190,7 +187,6 @@ class ScriptureFormState extends State<ScriptureForm> {
         ],
       ),
     );
-  }
 }
 class MyHomePage extends StatefulWidget {
   final Isar isar;
