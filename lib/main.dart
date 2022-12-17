@@ -7,10 +7,15 @@ import 'package:isar/isar.dart';
 import 'collections/scripture.dart';
 
 Future<Map<String, dynamic>> fetchScripture(String reference) async {
+  String url = 'https://bible-api.com/$reference';
+  Uri uri = Uri.parse(url);
+
+  debugPrint(uri.toString());
   final response = await http
-      .get(Uri.parse('https://bible-api.com/$reference'));
+      .get(uri);
 
   if (response.statusCode == 200) {
+    debugPrint('200 OK');
     return jsonDecode(response.body);
   } else {
     throw Exception('Failed to load scripture');
@@ -35,7 +40,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Our Verses',
       theme: ThemeData(
         primarySwatch: Colors.orange,
       ),
@@ -93,6 +98,7 @@ class ScriptureFormState extends State<ScriptureForm> {
   late String display;
 
   void getResult(String text) async {
+    debugPrint(text);
     List<String> result = text.split(',');
     if (result.isEmpty) {
       display = "Error getting scripture";
@@ -101,12 +107,15 @@ class ScriptureFormState extends State<ScriptureForm> {
 
     for (int i = 0; i < result.length; i++) {
       try {
+        debugPrint(result[i]);
         final json = await fetchScripture(result[i]);
 
         final newScripture = Scripture()
           ..reference = json['reference']
           ..text = json['text']
           ..translation = json['translation_name'];
+
+
 
         await widget.isar.writeTxn(() async {
           await widget.isar.scriptures.put(newScripture);
@@ -162,7 +171,17 @@ class ScriptureFormState extends State<ScriptureForm> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(display)),
                   );
-                  Navigator.of(context).pop();
+
+                  // TODO: Better fix than this
+                  Future.delayed(const Duration(seconds: 3), () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        // TODO: gorouter, don't pass around isar, riverpod
+                          builder: (context) => MyHomePage(title: 'Scripture App', isar: widget.isar)
+                      ),
+                    );
+                  });
+
                 }
               },
               child: const Text('Submit'),
@@ -223,8 +242,8 @@ class _MyHomePageState extends State<MyHomePage> {
               Expanded(child: scriptureWidget()),
               FloatingActionButton(
                 backgroundColor: Colors.lightBlue,
-                onPressed: () {
-                  showDialog(
+                onPressed: () async {
+                  await showDialog(
                       context: context,
                       builder: (BuildContext context) {
                         return SimpleDialog(
