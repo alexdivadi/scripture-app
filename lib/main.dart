@@ -85,9 +85,7 @@ class ScriptureForm extends StatefulWidget {
   const ScriptureForm({super.key, required this.isar});
 
   @override
-  ScriptureFormState createState() {
-    return ScriptureFormState();
-  }
+  ScriptureFormState createState() => ScriptureFormState();
 }
 class ScriptureFormState extends State<ScriptureForm> {
   final _formKey = GlobalKey<FormState>();
