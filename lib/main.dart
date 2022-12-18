@@ -74,6 +74,8 @@ void main() async {
     minimumFetchInterval: minimumFetchInternal,
   ));
   await remoteConfig.fetchAndActivate();
+  String csv = remoteConfig.getString("csvVerses");
+  log.d('csv=$csv');
 
   
   final dir = await getApplicationSupportDirectory();
@@ -81,6 +83,14 @@ void main() async {
       [ScriptureSchema],
       directory: dir.path,
       inspector: true);
+
+  if (csv.isNotEmpty) {
+    int numScriptures = await isar.scriptures.count();
+    log.d('numScriptures=$numScriptures');
+    if (numScriptures == 0) {
+      await getResult(csv, isar);
+    }
+  }
   runApp(MyApp(isar: isar));
 }
 
