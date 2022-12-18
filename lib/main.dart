@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -57,7 +58,13 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   analytics.setUserProperty(name: "isDebug", value: kDebugMode.toString());
-
+  if (kDebugMode) {
+    // TODO: Consider purpose of push and permissiosn and fcm channel and icon
+    final fcmToken = await FirebaseMessaging.instance.getToken();
+    log.d('fcmToken = $fcmToken');
+    // note test FCM not woriking under my pixel 6 yet
+    // but can return later, not needed right now.
+  }
   final dir = await getApplicationSupportDirectory();
   final isar = await Isar.open(
       [ScriptureSchema],
