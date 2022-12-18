@@ -7,7 +7,7 @@ Ourverses app
 -- 0.7.0 firebase 
         analytics
         fcm (not yet tested successfully)
-        in app messaging
+        in app messaging (test message worked via hardcoded id)
 
 
 
