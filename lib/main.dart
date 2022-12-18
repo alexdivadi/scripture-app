@@ -1,29 +1,63 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:isar/isar.dart';
 import 'collections/scripture.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
+var log = Logger(
+  printer: PrettyPrinter(
+      methodCount: 2, // number of method calls to be displayed
+      errorMethodCount: 8, // number of method calls if stacktrace is provided
+      lineLength: 120, // width of the output
+      colors: true, // Colorful log messages
+      printEmojis: true, // Print an emoji for each log message
+      printTime: true // Should each log print contain a timestamp
+  ),
+);
 Future<Map<String, dynamic>> fetchScripture(String reference) async {
   String url = 'https://bible-api.com/$reference';
   Uri uri = Uri.parse(url);
 
-  debugPrint(uri.toString());
-  final response = await http
-      .get(uri);
+  log.d(uri.toString());
+  // TODO: Riverpod for cleaner error code, etc
+  // TODO: connectivity reminder if no connection
+  try {
+    final response = await http.get(uri);
 
-  if (response.statusCode == 200) {
-    debugPrint('200 OK');
-    return jsonDecode(response.body);
-  } else {
-    throw Exception('Failed to load scripture');
+    if (response.statusCode == 200) {
+      debugPrint('200 OK');
+      log.d("200 ok");
+      return jsonDecode(response.body);
+    } else {
+      log.e('status code = ${response.statusCode} message = ${response.reasonPhrase}', Exception('Failed to load scripture'));
+      throw Exception('Failed to load scripture');
+    }
+  } catch(e) {
+    debugPrint(e.toString());
+    log.e(e);
+    rethrow;
   }
+
+
 }
+
+FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  analytics.setUserProperty(name: "isDebug", value: kDebugMode.toString());
+
   final dir = await getApplicationSupportDirectory();
   final isar = await Isar.open(
       [ScriptureSchema],
@@ -101,6 +135,7 @@ class ScriptureFormState extends State<ScriptureForm> {
     debugPrint(text);
     List<String> result = text.split(',');
     if (result.isEmpty) {
+      analytics.logEvent(name: "ErrorGettingScripture", parameters: {'textString': text});
       display = "Error getting scripture";
       return;
     }
@@ -121,6 +156,7 @@ class ScriptureFormState extends State<ScriptureForm> {
           await widget.isar.scriptures.put(newScripture);
         });
         display = "Added ${result[i]}";
+        analytics.logEvent(name: "Added", parameters: {'verse': result[i]});
       } catch (e) {
         display = "A scripture was not found";
         break;
@@ -163,6 +199,9 @@ class ScriptureFormState extends State<ScriptureForm> {
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: ElevatedButton(
               onPressed: () async {
+                debugPrint("**tapped submit");
+                analytics.logEvent(name: "AddVerseSubmitButtonTapped");
+
                 if (_formKey.currentState!.validate()) {
                   // If the form is valid, ...
                   await getResult(myController.text);
@@ -179,6 +218,8 @@ class ScriptureFormState extends State<ScriptureForm> {
                     ),
                   );
 
+                } else {
+                  debugPrint("**form not valid");
                 }
               },
               child: const Text('Submit'),
@@ -239,6 +280,7 @@ class _MyHomePageState extends State<MyHomePage> {
               FloatingActionButton(
                 backgroundColor: Colors.lightBlue,
                 onPressed: () async {
+                  analytics.logEvent(name: "TappedAddButton");
                   await showDialog(
                       context: context,
                       builder: (BuildContext context) {
@@ -261,6 +303,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
   Future<void> _pullRefresh() async {
+    analytics.logEvent(name: "PullToRefresh");
     setState(() {
       scriptureList = refreshScriptureList();
     });
@@ -283,6 +326,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         color: Colors.red,
                         icon: Icons.delete,
                         onTap: () async {
+                          analytics.logEvent(name: "DeleteSlideAction");
                           await widget.isar.writeTxn(() async {
                             await widget.isar.scriptures.delete(snapshot.data![index].scriptureId);
                           });
