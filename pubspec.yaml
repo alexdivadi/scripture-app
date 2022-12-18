@@ -45,6 +45,7 @@ dependencies:
   logger: ^1.1.0
   firebase_messaging: ^14.1.4
   firebase_in_app_messaging: ^0.7.0+8
+  firebase_remote_config: ^3.0.7
 
 dev_dependencies:
   flutter_test:

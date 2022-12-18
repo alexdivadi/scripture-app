@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -58,13 +59,23 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   analytics.setUserProperty(name: "isDebug", value: kDebugMode.toString());
+  Duration minimumFetchInternal = const Duration(hours: 12);
   if (kDebugMode) {
     // TODO: Consider purpose of push and permissiosn and fcm channel and icon
     final fcmToken = await FirebaseMessaging.instance.getToken();
     log.d('fcmToken = $fcmToken');
     // note test FCM not woriking under my pixel 6 yet
     // but can return later, not needed right now.
+    minimumFetchInternal = const Duration(seconds: 1);
   }
+  final remoteConfig = FirebaseRemoteConfig.instance;
+  await remoteConfig.setConfigSettings(RemoteConfigSettings(
+    fetchTimeout: const Duration(minutes: 1),
+    minimumFetchInterval: minimumFetchInternal,
+  ));
+  await remoteConfig.fetchAndActivate();
+
+  
   final dir = await getApplicationSupportDirectory();
   final isar = await Isar.open(
       [ScriptureSchema],
@@ -133,44 +144,12 @@ class ScriptureForm extends StatefulWidget {
   @override
   ScriptureFormState createState() => ScriptureFormState();
 }
+String display = '';
 class ScriptureFormState extends State<ScriptureForm> {
   final _formKey = GlobalKey<FormState>();
   final myController = TextEditingController();
-  late String display;
-
-  Future<void> getResult(String text) async {
-    debugPrint(text);
-    List<String> result = text.split(',');
-    if (result.isEmpty) {
-      analytics.logEvent(name: "ErrorGettingScripture", parameters: {'textString': text});
-      display = "Error getting scripture";
-      return;
-    }
-
-    for (int i = 0; i < result.length; i++) {
-      try {
-        debugPrint(result[i]);
-        final json = await fetchScripture(result[i]);
-
-        final newScripture = Scripture()
-          ..reference = json['reference']
-          ..text = json['text']
-          ..translation = json['translation_name'];
 
 
-
-        await widget.isar.writeTxn(() async {
-          await widget.isar.scriptures.put(newScripture);
-        });
-        display = "Added ${result[i]}";
-        analytics.logEvent(name: "Added", parameters: {'verse': result[i]});
-      } catch (e) {
-        display = "A scripture was not found";
-        break;
-      }
-    }
-
-  }
 
   @override
   void initState() {
@@ -211,7 +190,7 @@ class ScriptureFormState extends State<ScriptureForm> {
 
                 if (_formKey.currentState!.validate()) {
                   // If the form is valid, ...
-                  await getResult(myController.text);
+                  await getResult(myController.text, widget.isar);
                   // TODO: address lint warning about async gap
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(display)),
@@ -353,6 +332,40 @@ class _MyHomePageState extends State<MyHomePage> {
         return const CircularProgressIndicator();
       },
     );
+  }
+
+}
+
+Future<void> getResult(String text, Isar isar) async {
+  log.d(text);
+  List<String> result = text.split(',');
+  if (result.isEmpty) {
+    analytics.logEvent(name: "ErrorGettingScripture", parameters: {'textString': text});
+    display = "Error getting scripture";
+    return;
+  }
+
+  for (int i = 0; i < result.length; i++) {
+    try {
+      debugPrint(result[i]);
+      final json = await fetchScripture(result[i]);
+
+      final newScripture = Scripture()
+        ..reference = json['reference']
+        ..text = json['text']
+        ..translation = json['translation_name'];
+
+
+
+      await isar.writeTxn(() async {
+        await isar.scriptures.put(newScripture);
+      });
+      display = "Added ${result[i]}";
+      analytics.logEvent(name: "Added", parameters: {'verse': result[i]});
+    } catch (e) {
+      display = "A scripture was not found";
+      break;
+    }
   }
 
 }
