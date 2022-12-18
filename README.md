@@ -4,7 +4,12 @@ Ourverses app
 ## Release notes/log
 
 -- 0.5.0 - initial release all David's but a bug fix
--- 0.7.0 firebase analytics
+-- 0.7.0 firebase 
+        analytics
+        fcm (not yet tested successfully)
+        in app messaging
+
+
 
 
 ## Some misc todos
