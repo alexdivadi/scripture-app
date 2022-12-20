@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "724990847891",
+    "project_id": "ourverses-dev",
+    "storage_bucket": "ourverses-dev.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:724990847891:android:1f5f9dbf8f152ee1559666",
+        "android_client_info": {
+          "package_name": "app.anirac.ourverses.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "724990847891-1lg1mpre4uuc11ipk0p0uc533b5lh2f8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsgS1YhU7WE1oeBg9LqVDABwCsvt9BcM4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "724990847891-1lg1mpre4uuc11ipk0p0uc533b5lh2f8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "724990847891-jc8044e88c06jp57u84h29gnldscgo6p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "app.anirac.ourverses.dev"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:724990847891:android:f2ea2a0a05fad3bb559666",
+        "android_client_info": {
+          "package_name": "org.dewapps.ourverses"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "724990847891-1lg1mpre4uuc11ipk0p0uc533b5lh2f8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsgS1YhU7WE1oeBg9LqVDABwCsvt9BcM4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "724990847891-1lg1mpre4uuc11ipk0p0uc533b5lh2f8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "724990847891-jc8044e88c06jp57u84h29gnldscgo6p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "app.anirac.ourverses.dev"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

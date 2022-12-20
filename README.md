@@ -1,16 +1,18 @@
 # my_first_project
 
-Making my first project from scratch
+Ourverses app
+## Release notes/log
 
-## Getting Started
+-- 0.5.0 - initial release all David's but a bug fix
+-- 0.7.0 firebase 
+        analytics
+        fcm (not yet tested successfully)
+        in app messaging (test message worked via hardcoded id)
+        firebase remote config for default verses for now, later for  lists.
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Some misc todos
+
+
