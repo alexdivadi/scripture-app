@@ -10,5 +10,5 @@ class Scripture{
   late String translation;
 
   @Index()
-  String listName = "default";
+  String listName = "My List";
 }
