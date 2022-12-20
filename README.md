@@ -8,6 +8,7 @@ Ourverses app
         analytics
         fcm (not yet tested successfully)
         in app messaging (test message worked via hardcoded id)
+        firebase remote config for default verses for now, later for  lists.
 
 
 
