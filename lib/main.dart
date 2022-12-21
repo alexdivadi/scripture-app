@@ -253,11 +253,17 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late Future<List<Scripture>> scriptureList;
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
-  String currentList = "My List";
+  late String currentList;
 
   @override
   void initState() {
     super.initState();
+    getInitialList();
+  }
+
+  void getInitialList() async {
+    currentList =
+        (await widget.isar.scriptures.where().listNameProperty().findFirst())!;
     scriptureList = refreshScriptureList(currentList);
   }
 
@@ -339,6 +345,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _pullRefresh() async {
     analytics.logEvent(name: "PullToRefresh");
     scriptureList = refreshScriptureList(currentList);
+    setState((){});
   }
 
   Future<void> _pushCollectionsScreen() async {
@@ -403,7 +410,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             await widget.isar.scriptures.delete(snapshot.data![index].scriptureId);
                           });
                           scriptureList = refreshScriptureList(currentList);
-
+                          setState((){});
                           },
                         ),
                       ],
