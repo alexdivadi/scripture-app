@@ -258,23 +258,27 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     getInitialList();
-    scriptureList = refreshScriptureList(currentList);
     super.initState();
   }
 
-  void getInitialList() async {
+  void getInitialList() {
     widget.isar.scriptures.where().listNameProperty().findFirst().then((value) {
-      setState(() {
-        currentList = value ?? "My List";
-      });
+      currentList = value ?? "My List";
+      scriptureList = getScriptureList(currentList);
+      setState(() {});
     }
     );
   }
 
-  Future<List<Scripture>> refreshScriptureList (String listName) async {
+  Future<List<Scripture>> getScriptureList (String listName) async {
     return await widget.isar.scriptures.filter()
         .listNameMatches(listName)
         .findAll();
+  }
+
+  void refreshScriptureList() {
+    scriptureList = getScriptureList(currentList);
+    setState(() {});
   }
 
   Future<List<String>> getCollections () async {
@@ -286,7 +290,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void switchCollections (String newList) async {
     analytics.logEvent(name: "SwitchedCollection");
-    scriptureList = refreshScriptureList(newList);
+    scriptureList = getScriptureList(newList);
     setState(() => currentList = newList);
   }
 
@@ -348,7 +352,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
   Future<void> _pullRefresh() async {
     analytics.logEvent(name: "PullToRefresh");
-    scriptureList = refreshScriptureList(currentList ?? "My List");
+    scriptureList = getScriptureList(currentList);
     setState((){});
   }
 
@@ -418,8 +422,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           await widget.isar.writeTxn(() async {
                             await widget.isar.scriptures.delete(snapshot.data![index].scriptureId);
                           });
-                          scriptureList = refreshScriptureList(currentList ?? "My List");
-                          setState((){});
+                          refreshScriptureList();
                           },
                         ),
                       ],
