@@ -251,21 +251,21 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late Future<List<Scripture>> scriptureList;
+  late Future<List<Scripture>>? scriptureList;
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
   late String currentList = "My List";
 
   @override
   void initState() {
     getInitialList();
+    refreshScriptureList();
     super.initState();
   }
 
   void getInitialList() {
     widget.isar.scriptures.where().listNameProperty().findFirst().then((value) {
       currentList = value ?? "My List";
-      scriptureList = getScriptureList(currentList);
-      setState(() {});
+      refreshScriptureList();
     }
     );
   }
@@ -405,35 +405,38 @@ class _MyHomePageState extends State<MyHomePage> {
     return FutureBuilder<List<Scripture>>(
       future: scriptureList,
       builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return ListView.builder(
+      if (snapshot.connectionState == ConnectionState.done) {
+        if (snapshot.hasError) {
+          return Text('${snapshot.error}');
+        }
+        return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
                 return Slidable(
-                    actionPane: const SlidableDrawerActionPane(),
-                    actionExtentRatio: 0.25,
-                    secondaryActions: <Widget>[
-                      IconSlideAction(
-                        caption: 'Delete',
-                        color: Colors.red,
-                        icon: Icons.delete,
-                        onTap: () async {
-                          analytics.logEvent(name: "DeleteSlideAction");
-                          await widget.isar.writeTxn(() async {
-                            await widget.isar.scriptures.delete(snapshot.data![index].scriptureId);
-                          });
-                          refreshScriptureList();
-                          },
-                        ),
-                      ],
-                    child: FutureItemTile(data: snapshot.data![index]),
+                  actionPane: const SlidableDrawerActionPane(),
+                  actionExtentRatio: 0.25,
+                  secondaryActions: <Widget>[
+                    IconSlideAction(
+                      caption: 'Delete',
+                      color: Colors.red,
+                      icon: Icons.delete,
+                      onTap: () async {
+                        analytics.logEvent(name: "DeleteSlideAction");
+                        await widget.isar.writeTxn(() async {
+                          await widget.isar.scriptures.delete(
+                              snapshot.data![index].scriptureId);
+                        });
+                        refreshScriptureList();
+                      },
+                    ),
+                  ],
+                  child: FutureItemTile(data: snapshot.data![index]),
                 );
               }
           );
-        } else if (snapshot.hasError) {
-          return Text('${snapshot.error}');
+        } else {
+          return const CircularProgressIndicator();
         }
-        return const CircularProgressIndicator();
       },
     );
   }
