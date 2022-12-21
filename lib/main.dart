@@ -251,14 +251,13 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late Future<List<Scripture>>? scriptureList;
+  Future<List<Scripture>>? scriptureList;
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
   late String currentList = "My List";
 
   @override
   void initState() {
     getInitialList();
-    refreshScriptureList();
     super.initState();
   }
 
