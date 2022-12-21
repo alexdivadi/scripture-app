@@ -253,18 +253,22 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late Future<List<Scripture>> scriptureList;
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
-  late String currentList;
+  late String currentList = "My List";
 
   @override
   void initState() {
-    super.initState();
     getInitialList();
+    scriptureList = refreshScriptureList(currentList);
+    super.initState();
   }
 
   void getInitialList() async {
-    currentList =
-        (await widget.isar.scriptures.where().listNameProperty().findFirst())!;
-    scriptureList = refreshScriptureList(currentList);
+    widget.isar.scriptures.where().listNameProperty().findFirst().then((value) {
+      setState(() {
+        currentList = value ?? "My List";
+      });
+    }
+    );
   }
 
   Future<List<Scripture>> refreshScriptureList (String listName) async {
@@ -344,50 +348,55 @@ class _MyHomePageState extends State<MyHomePage> {
   }
   Future<void> _pullRefresh() async {
     analytics.logEvent(name: "PullToRefresh");
-    scriptureList = refreshScriptureList(currentList);
+    scriptureList = refreshScriptureList(currentList ?? "My List");
     setState((){});
   }
 
   Future<void> _pushCollectionsScreen() async {
     Navigator.of(context).push(
-      // Add lines from here...
         MaterialPageRoute<void>(
           builder: (context) {
-            return Scaffold(
-              appBar: AppBar(
-                title: const Text('Collections'),
-              ),
-              body: FutureBuilder<List<String>>(
-                  future: getCollections(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      return ListView.builder(
-                          itemCount: snapshot.data!.length,
-                          itemBuilder: (context, index) {
-                            return ListTile(
-                                // TODO: maybe throw in an asPascalCase
-                                title: Text(snapshot.data![index]),
-                                enabled: (snapshot.data![index] != currentList),
-                                onTap: () async {
-                                  switchCollections(snapshot.data![index]);
-                                  Navigator.of(context).pop();
-                                },
-                            );
-                          }
-
-                      );
-                    } else if (snapshot.hasError) {
-                      return Text('${snapshot.error}');
-                    }
-                    return const CircularProgressIndicator();
-                  },
-              ),
-            );
+            return collectionWidget();
           }
         )
     );
   }
 
+  // List of collections (tappable)
+  Widget collectionWidget() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Collections'),
+      ),
+      body: FutureBuilder<List<String>>(
+        future: getCollections(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return ListView.builder(
+                itemCount: snapshot.data!.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    // TODO: maybe throw in an asPascalCase
+                    title: Text(snapshot.data![index]),
+                    enabled: (snapshot.data![index] != currentList),
+                    onTap: () async {
+                      switchCollections(snapshot.data![index]);
+                      Navigator.of(context).pop();
+                    },
+                  );
+                }
+
+            );
+          } else if (snapshot.hasError) {
+            return Text('${snapshot.error}');
+          }
+          return const CircularProgressIndicator();
+        },
+      ),
+    );
+  }
+
+  // List of scriptures (tappable + slidable)
   Widget scriptureWidget() {
     return FutureBuilder<List<Scripture>>(
       future: scriptureList,
@@ -409,7 +418,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           await widget.isar.writeTxn(() async {
                             await widget.isar.scriptures.delete(snapshot.data![index].scriptureId);
                           });
-                          scriptureList = refreshScriptureList(currentList);
+                          scriptureList = refreshScriptureList(currentList ?? "My List");
                           setState((){});
                           },
                         ),
@@ -428,6 +437,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
 }
 
+// Make API call and convert to Scripture
 Future<void> getResult(String text, String currentList, Isar isar) async {
   log.d(text);
   List<String> result = text.split(',');
