@@ -64,7 +64,7 @@ void main() async {
     // TODO: Consider purpose of push and permissiosn and fcm channel and icon
     final fcmToken = await FirebaseMessaging.instance.getToken();
     log.d('fcmToken = $fcmToken');
-    // note test FCM not woriking under my pixel 6 yet
+    // note test FCM not working under my pixel 6 yet
     // but can return later, not needed right now.
     minimumFetchInternal = const Duration(seconds: 1);
   }
@@ -88,7 +88,7 @@ void main() async {
     int numScriptures = await isar.scriptures.count();
     log.d('numScriptures=$numScriptures');
     if (numScriptures == 0) {
-      await getResult(csv, isar);
+      await getResult(csv, "My List", isar);
     }
   }
   runApp(MyApp(isar: isar));
@@ -149,7 +149,8 @@ class _FutureItemTileState extends State<FutureItemTile> {
 
 class ScriptureForm extends StatefulWidget {
   final Isar isar;
-  const ScriptureForm({super.key, required this.isar});
+  final String currentList;
+  const ScriptureForm({super.key, required this.isar, required this.currentList});
 
   @override
   ScriptureFormState createState() => ScriptureFormState();
@@ -157,19 +158,20 @@ class ScriptureForm extends StatefulWidget {
 String display = '';
 class ScriptureFormState extends State<ScriptureForm> {
   final _formKey = GlobalKey<FormState>();
-  final myController = TextEditingController();
-
-
+  final referenceController = TextEditingController();
+  TextEditingController collectionController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     display = "Running";
+    collectionController = TextEditingController(text: widget.currentList);
   }
   
   @override
   void dispose() {
-    myController.dispose();
+    referenceController.dispose();
+    collectionController.dispose();
     super.dispose();
   }
 
@@ -180,9 +182,22 @@ class ScriptureFormState extends State<ScriptureForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextFormField(
-            controller: myController,
+            controller: referenceController,
             decoration: const InputDecoration(
               labelText: "Enter comma-separated list of Scriptures",
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter some text';
+              }
+              return null;
+            },
+          ),
+          // TODO: Maybe hide this TextForm unless the user wants to create a new list
+          TextFormField(
+            controller: collectionController,
+            decoration: const InputDecoration(
+              labelText: "Collection name",
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -200,7 +215,7 @@ class ScriptureFormState extends State<ScriptureForm> {
 
                 if (_formKey.currentState!.validate()) {
                   // If the form is valid, ...
-                  await getResult(myController.text, widget.isar);
+                  await getResult(referenceController.text, collectionController.text, widget.isar);
                   // TODO: address lint warning about async gap
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(display)),
@@ -236,18 +251,46 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late Future<List<Scripture>> scriptureList;
+  Future<List<Scripture>>? scriptureList;
+  // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
+  late String currentList = "My List";
 
   @override
   void initState() {
+    getInitialList();
     super.initState();
-    scriptureList = refreshScriptureList();
   }
 
-  Future<List<Scripture>> refreshScriptureList () async {
+  void getInitialList() {
+    widget.isar.scriptures.where().listNameProperty().findFirst().then((value) {
+      currentList = value ?? "My List";
+      refreshScriptureList();
+    }
+    );
+  }
+
+  Future<List<Scripture>> getScriptureList (String listName) async {
     return await widget.isar.scriptures.filter()
-        .listNameMatches("default")
+        .listNameMatches(listName)
         .findAll();
+  }
+
+  void refreshScriptureList() {
+    scriptureList = getScriptureList(currentList);
+    setState(() {});
+  }
+
+  Future<List<String>> getCollections () async {
+    return await widget.isar.scriptures.where()
+    .distinctByListName()
+        .listNameProperty()
+        .findAll();
+  }
+
+  void switchCollections (String newList) async {
+    analytics.logEvent(name: "SwitchedCollection");
+    scriptureList = getScriptureList(newList);
+    setState(() => currentList = newList);
   }
 
   @override
@@ -255,6 +298,13 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.list),
+            onPressed: _pushCollectionsScreen,
+            tooltip: 'Your Collections',
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _pullRefresh,
@@ -264,8 +314,8 @@ class _MyHomePageState extends State<MyHomePage> {
             children: [
               Container(padding: const EdgeInsets.only(bottom: 20),
                 alignment: Alignment.topLeft,
-                child: const Text("Saved Scriptures",
-                  style: TextStyle(
+                child: Text(currentList,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     overflow: TextOverflow.ellipsis,
                     fontSize: 30,
@@ -284,12 +334,13 @@ class _MyHomePageState extends State<MyHomePage> {
                           title: const Text("Add a Scripture"),
                           children: [
                             Padding(padding: const EdgeInsets.all(20),
-                              child: ScriptureForm(isar: widget.isar),
+                              child: ScriptureForm(currentList: currentList, isar: widget.isar),
                             )],
                         );
                       }
                   );
                 },
+                tooltip: 'Add a verse',
                 child: const Icon(Icons.add),
               )
           ],
@@ -300,53 +351,99 @@ class _MyHomePageState extends State<MyHomePage> {
   }
   Future<void> _pullRefresh() async {
     analytics.logEvent(name: "PullToRefresh");
-    setState(() {
-      scriptureList = refreshScriptureList();
-    });
+    scriptureList = getScriptureList(currentList);
+    setState((){});
   }
 
+  Future<void> _pushCollectionsScreen() async {
+    Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) {
+            return collectionWidget();
+          }
+        )
+    );
+  }
+
+  // List of collections (tappable)
+  Widget collectionWidget() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Collections'),
+      ),
+      body: FutureBuilder<List<String>>(
+        future: getCollections(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return ListView.builder(
+                itemCount: snapshot.data!.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    // TODO: maybe throw in an asPascalCase
+                    title: Text(snapshot.data![index]),
+                    enabled: (snapshot.data![index] != currentList),
+                    onTap: () async {
+                      switchCollections(snapshot.data![index]);
+                      Navigator.of(context).pop();
+                    },
+                  );
+                }
+
+            );
+          } else if (snapshot.hasError) {
+            return Text('${snapshot.error}');
+          }
+          return const CircularProgressIndicator();
+        },
+      ),
+    );
+  }
+
+  // List of scriptures (tappable + slidable)
   Widget scriptureWidget() {
     return FutureBuilder<List<Scripture>>(
       future: scriptureList,
       builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return ListView.builder(
+      if (snapshot.connectionState == ConnectionState.done) {
+        if (snapshot.hasError) {
+          return Text('${snapshot.error}');
+        }
+        return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
                 return Slidable(
-                    actionPane: const SlidableDrawerActionPane(),
-                    actionExtentRatio: 0.25,
-                    secondaryActions: <Widget>[
-                      IconSlideAction(
-                        caption: 'Delete',
-                        color: Colors.red,
-                        icon: Icons.delete,
-                        onTap: () async {
-                          analytics.logEvent(name: "DeleteSlideAction");
-                          await widget.isar.writeTxn(() async {
-                            await widget.isar.scriptures.delete(snapshot.data![index].scriptureId);
-                          });
-                          setState(() {
-                            scriptureList = refreshScriptureList();
-                          });
-                          },
-                        ),
-                      ],
-                    child: FutureItemTile(data: snapshot.data![index]),
+                  actionPane: const SlidableDrawerActionPane(),
+                  actionExtentRatio: 0.25,
+                  secondaryActions: <Widget>[
+                    IconSlideAction(
+                      caption: 'Delete',
+                      color: Colors.red,
+                      icon: Icons.delete,
+                      onTap: () async {
+                        analytics.logEvent(name: "DeleteSlideAction");
+                        await widget.isar.writeTxn(() async {
+                          await widget.isar.scriptures.delete(
+                              snapshot.data![index].scriptureId);
+                        });
+                        refreshScriptureList();
+                      },
+                    ),
+                  ],
+                  child: FutureItemTile(data: snapshot.data![index]),
                 );
               }
           );
-        } else if (snapshot.hasError) {
-          return Text('${snapshot.error}');
+        } else {
+          return const CircularProgressIndicator();
         }
-        return const CircularProgressIndicator();
       },
     );
   }
 
 }
 
-Future<void> getResult(String text, Isar isar) async {
+// Make API call and convert to Scripture
+Future<void> getResult(String text, String currentList, Isar isar) async {
   log.d(text);
   List<String> result = text.split(',');
   if (result.isEmpty) {
@@ -363,7 +460,8 @@ Future<void> getResult(String text, Isar isar) async {
       final newScripture = Scripture()
         ..reference = json['reference']
         ..text = json['text']
-        ..translation = json['translation_name'];
+        ..translation = json['translation_name']
+        ..listName = currentList;
 
 
 
