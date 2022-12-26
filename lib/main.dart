@@ -2,16 +2,18 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:isar/isar.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:scripture_app/providers.dart';
 import 'collections/scripture.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 var log = Logger(
   printer: PrettyPrinter(
@@ -23,32 +25,6 @@ var log = Logger(
       printTime: true // Should each log print contain a timestamp
   ),
 );
-Future<Map<String, dynamic>> fetchScripture(String reference) async {
-  String url = 'https://bible-api.com/$reference';
-  Uri uri = Uri.parse(url);
-
-  log.d(uri.toString());
-  // TODO: Riverpod for cleaner error code, etc
-  // TODO: connectivity reminder if no connection
-  try {
-    final response = await http.get(uri);
-
-    if (response.statusCode == 200) {
-      debugPrint('200 OK');
-      log.d("200 ok");
-      return jsonDecode(response.body);
-    } else {
-      log.e('status code = ${response.statusCode} message = ${response.reasonPhrase}', Exception('Failed to load scripture'));
-      throw Exception('Failed to load scripture');
-    }
-  } catch(e) {
-    debugPrint(e.toString());
-    log.e(e);
-    rethrow;
-  }
-
-
-}
 
 FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
@@ -77,26 +53,26 @@ void main() async {
   String csv = remoteConfig.getString("csvVerses");
   log.d('csv=$csv');
 
-  
-  final dir = await getApplicationSupportDirectory();
-  final isar = await Isar.open(
-      [ScriptureSchema],
-      directory: dir.path,
-      inspector: true);
+
+  final container = ProviderContainer();
+  final database = container.read(databaseProvider);
+  await database.init();
 
   if (csv.isNotEmpty) {
-    int numScriptures = await isar.scriptures.count();
+    int numScriptures = await database.getScriptureCount();
     log.d('numScriptures=$numScriptures');
     if (numScriptures == 0) {
-      await getResult(csv, "My List", isar);
+      // TODO: Clean this up a bit to happen within an initDatabase or similar)
+      await container.read(getResultProvider.call(csv, 'My List').future);
     }
   }
-  runApp(MyApp(isar: isar));
-}
+  runApp(UncontrolledProviderScope(
+    container: container,
+    child: const MyApp(),
+  ));}
 
 class MyApp extends StatelessWidget {
-  final Isar isar;
-  const MyApp({super.key, required this.isar});
+  const MyApp({super.key});
 
   // This widget is the root of your application.
   @override
@@ -106,7 +82,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.orange,
       ),
-      home: MyHomePage(title: 'Scripture App', isar: isar),
+      home: MyHomePage(title: 'Scripture App'),
     );
   }
 }
@@ -147,16 +123,15 @@ class _FutureItemTileState extends State<FutureItemTile> {
     }
 }
 
-class ScriptureForm extends StatefulWidget {
-  final Isar isar;
+class ScriptureForm extends ConsumerStatefulWidget {
   final String currentList;
-  const ScriptureForm({super.key, required this.isar, required this.currentList});
+  const ScriptureForm({super.key, required this.currentList});
 
   @override
   ScriptureFormState createState() => ScriptureFormState();
 }
 String display = '';
-class ScriptureFormState extends State<ScriptureForm> {
+class ScriptureFormState extends ConsumerState<ScriptureForm> {
   final _formKey = GlobalKey<FormState>();
   final referenceController = TextEditingController();
   TextEditingController collectionController = TextEditingController();
@@ -167,7 +142,8 @@ class ScriptureFormState extends State<ScriptureForm> {
     display = "Running";
     collectionController = TextEditingController(text: widget.currentList);
   }
-  
+
+  // TODO: Switch to HookConsumerWidget not StatefulWidget
   @override
   void dispose() {
     referenceController.dispose();
@@ -215,7 +191,7 @@ class ScriptureFormState extends State<ScriptureForm> {
 
                 if (_formKey.currentState!.validate()) {
                   // If the form is valid, ...
-                  await getResult(referenceController.text, collectionController.text, widget.isar);
+                  await ref.read(getResultProvider.call(referenceController.text, collectionController.text).future);
                   // TODO: address lint warning about async gap
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(display)),
@@ -225,7 +201,7 @@ class ScriptureFormState extends State<ScriptureForm> {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
                       // TODO: gorouter, don't pass around isar, riverpod
-                        builder: (context) => MyHomePage(title: 'Scripture App', isar: widget.isar)
+                        builder: (context) => MyHomePage(title: 'Scripture App')
                     ),
                   );
 
@@ -240,21 +216,23 @@ class ScriptureFormState extends State<ScriptureForm> {
       ),
     );
 }
-class MyHomePage extends StatefulWidget {
-  final Isar isar;
-  const MyHomePage({super.key, required this.title, required this.isar});
+class MyHomePage extends ConsumerStatefulWidget {
+  const MyHomePage({super.key, required this.title});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  ConsumerState<MyHomePage> createState() => _MyHomePageState();
+
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends ConsumerState<MyHomePage> {
   Future<List<Scripture>>? scriptureList;
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
   late String currentList = "My List";
 
+  // TODO: Finish abstracting this out so no longer tightly coupled.
+  Isar get isar => ref.read(databaseProvider).isar;
   @override
   void initState() {
     getInitialList();
@@ -262,7 +240,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void getInitialList() {
-    widget.isar.scriptures.where().listNameProperty().findFirst().then((value) {
+    isar.scriptures.where().listNameProperty().findFirst().then((value) {
       currentList = value ?? "My List";
       refreshScriptureList();
     }
@@ -270,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<List<Scripture>> getScriptureList (String listName) async {
-    return await widget.isar.scriptures.filter()
+    return await isar.scriptures.filter()
         .listNameMatches(listName)
         .findAll();
   }
@@ -281,7 +259,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<List<String>> getCollections () async {
-    return await widget.isar.scriptures.where()
+    return await isar.scriptures.where()
     .distinctByListName()
         .listNameProperty()
         .findAll();
@@ -334,7 +312,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           title: const Text("Add a Scripture"),
                           children: [
                             Padding(padding: const EdgeInsets.all(20),
-                              child: ScriptureForm(currentList: currentList, isar: widget.isar),
+                              child: ScriptureForm(currentList: currentList),
                             )],
                         );
                       }
@@ -421,8 +399,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       icon: Icons.delete,
                       onTap: () async {
                         analytics.logEvent(name: "DeleteSlideAction");
-                        await widget.isar.writeTxn(() async {
-                          await widget.isar.scriptures.delete(
+                        await isar.writeTxn(() async {
+                          await isar.scriptures.delete(
                               snapshot.data![index].scriptureId);
                         });
                         refreshScriptureList();
@@ -438,42 +416,6 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       },
     );
-  }
-
-}
-
-// Make API call and convert to Scripture
-Future<void> getResult(String text, String currentList, Isar isar) async {
-  log.d(text);
-  List<String> result = text.split(',');
-  if (result.isEmpty) {
-    analytics.logEvent(name: "ErrorGettingScripture", parameters: {'textString': text});
-    display = "Error getting scripture";
-    return;
-  }
-
-  for (int i = 0; i < result.length; i++) {
-    try {
-      debugPrint(result[i]);
-      final json = await fetchScripture(result[i]);
-
-      final newScripture = Scripture()
-        ..reference = json['reference']
-        ..text = json['text']
-        ..translation = json['translation_name']
-        ..listName = currentList;
-
-
-
-      await isar.writeTxn(() async {
-        await isar.scriptures.put(newScripture);
-      });
-      display = "Added ${result[i]}";
-      analytics.logEvent(name: "Added", parameters: {'verse': result[i]});
-    } catch (e) {
-      display = "A scripture was not found";
-      break;
-    }
   }
 
 }
