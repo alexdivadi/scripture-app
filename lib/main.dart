@@ -63,7 +63,7 @@ void main() async {
     log.d('numScriptures=$numScriptures');
     if (numScriptures == 0) {
       // TODO: Clean this up a bit to happen within an initDatabase or similar)
-      await container.read(getResultProvider.call(csv, 'My LIst').future);
+      await container.read(getResultProvider.call(csv, 'My List').future);
     }
   }
   runApp(UncontrolledProviderScope(
