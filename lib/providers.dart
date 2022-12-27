@@ -117,3 +117,15 @@ Future<void> getResult(GetResultRef ref, String text, String currentList) async 
   }
 
 }
+
+@Riverpod(keepAlive: true)
+class CurrentList extends _$CurrentList {
+  @override
+  String build() {
+    return 'My List';
+  }
+
+  void setCurrentList(String newListName) {
+    state = newListName;
+  }
+}

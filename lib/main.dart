@@ -124,8 +124,7 @@ class _FutureItemTileState extends State<FutureItemTile> {
 }
 
 class ScriptureForm extends ConsumerStatefulWidget {
-  final String currentList;
-  const ScriptureForm({super.key, required this.currentList});
+  const ScriptureForm({super.key});
 
   @override
   ScriptureFormState createState() => ScriptureFormState();
@@ -135,12 +134,13 @@ class ScriptureFormState extends ConsumerState<ScriptureForm> {
   final _formKey = GlobalKey<FormState>();
   final referenceController = TextEditingController();
   TextEditingController collectionController = TextEditingController();
+  // TODO: useTextEditingController hook
 
   @override
   void initState() {
     super.initState();
     display = "Running";
-    collectionController = TextEditingController(text: widget.currentList);
+    collectionController = TextEditingController(text: ref.watch(currentListProvider));
   }
 
   // TODO: Switch to HookConsumerWidget not StatefulWidget
@@ -229,7 +229,6 @@ class MyHomePage extends ConsumerStatefulWidget {
 class _MyHomePageState extends ConsumerState<MyHomePage> {
   Future<List<Scripture>>? scriptureList;
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
-  late String currentList = "My List";
 
   // TODO: Finish abstracting this out so no longer tightly coupled.
   Isar get isar => ref.read(databaseProvider).isar;
@@ -241,12 +240,13 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   void getInitialList() {
     isar.scriptures.where().listNameProperty().findFirst().then((value) {
-      currentList = value ?? "My List";
+      ref.read(currentListProvider.notifier).setCurrentList(value ?? "My List");
       refreshScriptureList();
     }
     );
   }
 
+  // TODO: Get rid of setState() calls when rebuild happens bc riverpod which is most of them.
   Future<List<Scripture>> getScriptureList (String listName) async {
     return await isar.scriptures.filter()
         .listNameMatches(listName)
@@ -254,7 +254,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   }
 
   void refreshScriptureList() {
-    scriptureList = getScriptureList(currentList);
+    scriptureList = getScriptureList(ref.watch(currentListProvider));
     setState(() {});
   }
 
@@ -268,7 +268,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   void switchCollections (String newList) async {
     analytics.logEvent(name: "SwitchedCollection");
     scriptureList = getScriptureList(newList);
-    setState(() => currentList = newList);
+    ref.read(currentListProvider.notifier).setCurrentList(newList);
   }
 
   @override
@@ -292,7 +292,8 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
             children: [
               Container(padding: const EdgeInsets.only(bottom: 20),
                 alignment: Alignment.topLeft,
-                child: Text(currentList,
+                child: Text(
+                  ref.watch(currentListProvider),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     overflow: TextOverflow.ellipsis,
@@ -308,11 +309,11 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
                   await showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return SimpleDialog(
-                          title: const Text("Add a Scripture"),
+                        return const SimpleDialog(
+                          title: Text("Add a Scripture"),
                           children: [
-                            Padding(padding: const EdgeInsets.all(20),
-                              child: ScriptureForm(currentList: currentList),
+                            Padding(padding: EdgeInsets.all(20),
+                              child: ScriptureForm(),
                             )],
                         );
                       }
@@ -329,7 +330,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   }
   Future<void> _pullRefresh() async {
     analytics.logEvent(name: "PullToRefresh");
-    scriptureList = getScriptureList(currentList);
+    scriptureList = getScriptureList(ref.read(currentListProvider));
     setState((){});
   }
 
@@ -359,7 +360,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
                   return ListTile(
                     // TODO: maybe throw in an asPascalCase
                     title: Text(snapshot.data![index]),
-                    enabled: (snapshot.data![index] != currentList),
+                    enabled: (snapshot.data![index] != ref.watch(currentListProvider)),
                     onTap: () async {
                       switchCollections(snapshot.data![index]);
                       Navigator.of(context).pop();
