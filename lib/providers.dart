@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:scripture_app/scripture_form.dart';
 
 import 'collections/scripture.dart';
 import 'main.dart';
@@ -116,4 +117,16 @@ Future<void> getResult(GetResultRef ref, String text, String currentList) async 
     }
   }
 
+}
+
+@Riverpod(keepAlive: true)
+class CurrentList extends _$CurrentList {
+  @override
+  String build() {
+    return 'My List';
+  }
+
+  void setCurrentList(String newListName) {
+    state = newListName;
+  }
 }

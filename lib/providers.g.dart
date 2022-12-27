@@ -29,6 +29,22 @@ class _SystemHash {
   }
 }
 
+String $CurrentListHash() => r'24386e5f881f4ec060b913e085843e4d7fdd5449';
+
+/// See also [CurrentList].
+final currentListProvider = NotifierProvider<CurrentList, String>(
+  CurrentList.new,
+  name: r'currentListProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : $CurrentListHash,
+);
+typedef CurrentListRef = NotifierProviderRef<String>;
+
+abstract class _$CurrentList extends Notifier<String> {
+  @override
+  String build();
+}
+
 String $databaseHash() => r'9773d98ade973283230fc9ba362813796cdeed6e';
 
 /// See also [database].

@@ -2,13 +2,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:isar/isar.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:scripture_app/providers.dart';
+import 'package:scripture_app/scripture_form.dart';
 import 'collections/scripture.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -76,15 +74,11 @@ class MyApp extends StatelessWidget {
 
   // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context) => MaterialApp(
       title: 'Our Verses',
-      theme: ThemeData(
-        primarySwatch: Colors.orange,
-      ),
-      home: MyHomePage(title: 'Scripture App'),
+      theme: ThemeData(primarySwatch: Colors.orange),
+      home: const MyHomePage(title: 'Scripture App'),
     );
-  }
 }
 
 class FutureItemTile extends StatefulWidget {
@@ -123,99 +117,6 @@ class _FutureItemTileState extends State<FutureItemTile> {
     }
 }
 
-class ScriptureForm extends ConsumerStatefulWidget {
-  final String currentList;
-  const ScriptureForm({super.key, required this.currentList});
-
-  @override
-  ScriptureFormState createState() => ScriptureFormState();
-}
-String display = '';
-class ScriptureFormState extends ConsumerState<ScriptureForm> {
-  final _formKey = GlobalKey<FormState>();
-  final referenceController = TextEditingController();
-  TextEditingController collectionController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    display = "Running";
-    collectionController = TextEditingController(text: widget.currentList);
-  }
-
-  // TODO: Switch to HookConsumerWidget not StatefulWidget
-  @override
-  void dispose() {
-    referenceController.dispose();
-    collectionController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextFormField(
-            controller: referenceController,
-            decoration: const InputDecoration(
-              labelText: "Enter comma-separated list of Scriptures",
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter some text';
-              }
-              return null;
-            },
-          ),
-          // TODO: Maybe hide this TextForm unless the user wants to create a new list
-          TextFormField(
-            controller: collectionController,
-            decoration: const InputDecoration(
-              labelText: "Collection name",
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter some text';
-              }
-              return null;
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: ElevatedButton(
-              onPressed: () async {
-                debugPrint("**tapped submit");
-                analytics.logEvent(name: "AddVerseSubmitButtonTapped");
-
-                if (_formKey.currentState!.validate()) {
-                  // If the form is valid, ...
-                  await ref.read(getResultProvider.call(referenceController.text, collectionController.text).future);
-                  // TODO: address lint warning about async gap
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(display)),
-                  );
-
-                  // TODO: Better fix than this
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      // TODO: gorouter, don't pass around isar, riverpod
-                        builder: (context) => MyHomePage(title: 'Scripture App')
-                    ),
-                  );
-
-                } else {
-                  debugPrint("**form not valid");
-                }
-              },
-              child: const Text('Submit'),
-            ),
-          ),
-        ],
-      ),
-    );
-}
 class MyHomePage extends ConsumerStatefulWidget {
   const MyHomePage({super.key, required this.title});
 
@@ -229,7 +130,6 @@ class MyHomePage extends ConsumerStatefulWidget {
 class _MyHomePageState extends ConsumerState<MyHomePage> {
   Future<List<Scripture>>? scriptureList;
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
-  late String currentList = "My List";
 
   // TODO: Finish abstracting this out so no longer tightly coupled.
   Isar get isar => ref.read(databaseProvider).isar;
@@ -241,12 +141,13 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   void getInitialList() {
     isar.scriptures.where().listNameProperty().findFirst().then((value) {
-      currentList = value ?? "My List";
+      ref.read(currentListProvider.notifier).setCurrentList(value ?? "My List");
       refreshScriptureList();
     }
     );
   }
 
+  // TODO: Get rid of setState() calls when rebuild happens bc riverpod which is most of them.
   Future<List<Scripture>> getScriptureList (String listName) async {
     return await isar.scriptures.filter()
         .listNameMatches(listName)
@@ -254,7 +155,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   }
 
   void refreshScriptureList() {
-    scriptureList = getScriptureList(currentList);
+    scriptureList = getScriptureList(ref.watch(currentListProvider));
     setState(() {});
   }
 
@@ -268,13 +169,14 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   void switchCollections (String newList) async {
     analytics.logEvent(name: "SwitchedCollection");
     scriptureList = getScriptureList(newList);
-    setState(() => currentList = newList);
+    ref.read(currentListProvider.notifier).setCurrentList(newList);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(widget.title),
         actions: [
           IconButton(
@@ -292,7 +194,8 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
             children: [
               Container(padding: const EdgeInsets.only(bottom: 20),
                 alignment: Alignment.topLeft,
-                child: Text(currentList,
+                child: Text(
+                  ref.watch(currentListProvider),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     overflow: TextOverflow.ellipsis,
@@ -308,11 +211,11 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
                   await showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return SimpleDialog(
-                          title: const Text("Add a Scripture"),
+                        return const SimpleDialog(
+                          title: Text("Add a Scripture"),
                           children: [
-                            Padding(padding: const EdgeInsets.all(20),
-                              child: ScriptureForm(currentList: currentList),
+                            Padding(padding: EdgeInsets.all(20),
+                              child: ScriptureForm(),
                             )],
                         );
                       }
@@ -329,7 +232,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   }
   Future<void> _pullRefresh() async {
     analytics.logEvent(name: "PullToRefresh");
-    scriptureList = getScriptureList(currentList);
+    scriptureList = getScriptureList(ref.read(currentListProvider));
     setState((){});
   }
 
@@ -359,7 +262,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
                   return ListTile(
                     // TODO: maybe throw in an asPascalCase
                     title: Text(snapshot.data![index]),
-                    enabled: (snapshot.data![index] != currentList),
+                    enabled: (snapshot.data![index] != ref.watch(currentListProvider)),
                     onTap: () async {
                       switchCollections(snapshot.data![index]);
                       Navigator.of(context).pop();
