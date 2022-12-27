@@ -104,11 +104,27 @@ class _FutureItemTileState extends State<FutureItemTile> {
                     children: [
                       Column(
                         children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 10.0),
+                                  child: Text("${widget.data.reference} (${widget.data.translation})"),
+                                ),),
+                              Container(
+                                alignment: Alignment.topRight,
+                                child: IconButton(
+                                  onPressed: () => Share.share("${widget.data.text}\n${widget.data.reference} (${widget.data.translation})"),
+                                  icon: const Icon(Icons.share),
+                                  iconSize: 15,
+                                  color: Colors.lightBlueAccent,
+                                ),
+                              ),
+                            ],
+                          ),
                           Padding(
                             padding: const EdgeInsets.all(10),
-                            child: Text("${widget.data.text}\n"
-                                "${widget.data.reference} (${widget.data.translation})"),
-                          ),
+                            child: Text("${widget.data.text}\n"),),
                         ]
                       )
                     ],
@@ -299,13 +315,6 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
                 return Slidable(
                   actionPane: const SlidableDrawerActionPane(),
                   actionExtentRatio: 0.25,
-                  actions: <Widget>[
-                    IconSlideAction(
-                      color: Colors.lightBlueAccent,
-                      icon: Icons.share,
-                      onTap: () => Share.share("${snapshot.data![index].text}\n${snapshot.data![index].reference} (${snapshot.data![index].translation})"),
-                    ),
-                  ],
                   secondaryActions: <Widget>[
                     IconSlideAction(
                       color: Colors.red,
