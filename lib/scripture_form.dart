@@ -20,7 +20,6 @@ class ScriptureFormState extends ConsumerState<ScriptureForm> {
   void initState() {
     super.initState();
     display = "Running";
-    collectionController = TextEditingController(text: ref.watch(currentListProvider));
   }
 
   // TODO: Switch to HookConsumerWidget not StatefulWidget
@@ -32,7 +31,10 @@ class ScriptureFormState extends ConsumerState<ScriptureForm> {
   }
 
   @override
-  Widget build(BuildContext context) => Form(
+  Widget build(BuildContext context) {
+    collectionController = TextEditingController(text: ref.watch(currentListProvider));
+
+    return Form(
     key: _formKey,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,4 +97,5 @@ class ScriptureFormState extends ConsumerState<ScriptureForm> {
       ],
     ),
   );
+  }
 }
