@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:logger/logger.dart';
@@ -12,6 +13,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 var log = Logger(
   printer: PrettyPrinter(
@@ -104,8 +106,9 @@ class _FutureItemTileState extends State<FutureItemTile> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(10),
-                            child: Text(widget.data.text),),
-                          Text("${widget.data.reference} (${widget.data.translation})"),
+                            child: Text("${widget.data.text}\n"
+                                "${widget.data.reference} (${widget.data.translation})"),
+                          ),
                         ]
                       )
                     ],
@@ -292,12 +295,19 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
         return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
+                //TODO: replace Slidable with better widget
                 return Slidable(
                   actionPane: const SlidableDrawerActionPane(),
                   actionExtentRatio: 0.25,
+                  actions: <Widget>[
+                    IconSlideAction(
+                      color: Colors.lightBlueAccent,
+                      icon: Icons.share,
+                      onTap: () => Share.share("${snapshot.data![index].text}\n${snapshot.data![index].reference} (${snapshot.data![index].translation})"),
+                    ),
+                  ],
                   secondaryActions: <Widget>[
                     IconSlideAction(
-                      caption: 'Delete',
                       color: Colors.red,
                       icon: Icons.delete,
                       onTap: () async {
