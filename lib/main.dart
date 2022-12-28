@@ -109,14 +109,14 @@ class _FutureItemTileState extends State<FutureItemTile> {
                               Expanded(
                                 child: Padding(
                                   padding: const EdgeInsets.only(left: 10.0),
-                                  child: Text("${widget.data.reference} (${widget.data.translation})"),
+                                  child: Text("${widget.data.reference} \n(${widget.data.translation})", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),),
                                 ),),
                               Container(
                                 alignment: Alignment.topRight,
                                 child: IconButton(
                                   onPressed: () => Share.share("${widget.data.text}\n${widget.data.reference} (${widget.data.translation})"),
                                   icon: const Icon(Icons.share),
-                                  iconSize: 15,
+                                  iconSize: 30,
                                   color: Colors.lightBlueAccent,
                                 ),
                               ),
@@ -124,7 +124,8 @@ class _FutureItemTileState extends State<FutureItemTile> {
                           ),
                           Padding(
                             padding: const EdgeInsets.all(10),
-                            child: Text("${widget.data.text}\n"),),
+                            child: Text("${widget.data.text}\n", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20))
+                            ,),
                         ]
                       )
                     ],

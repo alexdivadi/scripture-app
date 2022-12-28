@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 version: 0.7.7+777
-# Version 0.7.7 to include remote collections
+# Version 0.7.7 to include some refactoring and single verse share feature.
 # Version 0.7.5 includes local collections
 
 environment:
