@@ -1,4 +1,5 @@
 import 'package:isar/isar.dart';
+import 'package:scripture_app/collections/scripturelist.dart';
 part 'scripture.g.dart';
 
 @collection
@@ -9,6 +10,5 @@ class Scripture{
   late String text;
   late String translation;
 
-  @Index()
-  String listName = "My List";
+  final collection = IsarLink<ScriptureList>();
 }

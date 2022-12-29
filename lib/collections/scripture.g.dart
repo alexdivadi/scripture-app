@@ -17,23 +17,18 @@ const ScriptureSchema = CollectionSchema(
   name: r'Scripture',
   id: 1162171017114397190,
   properties: {
-    r'listName': PropertySchema(
-      id: 0,
-      name: r'listName',
-      type: IsarType.string,
-    ),
     r'reference': PropertySchema(
-      id: 1,
+      id: 0,
       name: r'reference',
       type: IsarType.string,
     ),
     r'text': PropertySchema(
-      id: 2,
+      id: 1,
       name: r'text',
       type: IsarType.string,
     ),
     r'translation': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'translation',
       type: IsarType.string,
     )
@@ -43,22 +38,15 @@ const ScriptureSchema = CollectionSchema(
   deserialize: _scriptureDeserialize,
   deserializeProp: _scriptureDeserializeProp,
   idName: r'scriptureId',
-  indexes: {
-    r'listName': IndexSchema(
-      id: -9160894145738258075,
-      name: r'listName',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'listName',
-          type: IndexType.hash,
-          caseSensitive: true,
-        )
-      ],
+  indexes: {},
+  links: {
+    r'collection': LinkSchema(
+      id: 8571740910830440936,
+      name: r'collection',
+      target: r'ScriptureList',
+      single: true,
     )
   },
-  links: {},
   embeddedSchemas: {},
   getId: _scriptureGetId,
   getLinks: _scriptureGetLinks,
@@ -72,7 +60,6 @@ int _scriptureEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  bytesCount += 3 + object.listName.length * 3;
   bytesCount += 3 + object.reference.length * 3;
   bytesCount += 3 + object.text.length * 3;
   bytesCount += 3 + object.translation.length * 3;
@@ -85,10 +72,9 @@ void _scriptureSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.listName);
-  writer.writeString(offsets[1], object.reference);
-  writer.writeString(offsets[2], object.text);
-  writer.writeString(offsets[3], object.translation);
+  writer.writeString(offsets[0], object.reference);
+  writer.writeString(offsets[1], object.text);
+  writer.writeString(offsets[2], object.translation);
 }
 
 Scripture _scriptureDeserialize(
@@ -98,11 +84,10 @@ Scripture _scriptureDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Scripture();
-  object.listName = reader.readString(offsets[0]);
-  object.reference = reader.readString(offsets[1]);
+  object.reference = reader.readString(offsets[0]);
   object.scriptureId = id;
-  object.text = reader.readString(offsets[2]);
-  object.translation = reader.readString(offsets[3]);
+  object.text = reader.readString(offsets[1]);
+  object.translation = reader.readString(offsets[2]);
   return object;
 }
 
@@ -119,8 +104,6 @@ P _scriptureDeserializeProp<P>(
       return (reader.readString(offset)) as P;
     case 2:
       return (reader.readString(offset)) as P;
-    case 3:
-      return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -131,11 +114,13 @@ Id _scriptureGetId(Scripture object) {
 }
 
 List<IsarLinkBase<dynamic>> _scriptureGetLinks(Scripture object) {
-  return [];
+  return [object.collection];
 }
 
 void _scriptureAttach(IsarCollection<dynamic> col, Id id, Scripture object) {
   object.scriptureId = id;
+  object.collection
+      .attach(col, col.isar.collection<ScriptureList>(), r'collection', id);
 }
 
 extension ScriptureQueryWhereSort
@@ -219,186 +204,10 @@ extension ScriptureQueryWhere
       ));
     });
   }
-
-  QueryBuilder<Scripture, Scripture, QAfterWhereClause> listNameEqualTo(
-      String listName) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'listName',
-        value: [listName],
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterWhereClause> listNameNotEqualTo(
-      String listName) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'listName',
-              lower: [],
-              upper: [listName],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'listName',
-              lower: [listName],
-              includeLower: false,
-              upper: [],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'listName',
-              lower: [listName],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'listName',
-              lower: [],
-              upper: [listName],
-              includeUpper: false,
-            ));
-      }
-    });
-  }
 }
 
 extension ScriptureQueryFilter
     on QueryBuilder<Scripture, Scripture, QFilterCondition> {
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> listNameEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'listName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> listNameGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'listName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> listNameLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'listName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> listNameBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'listName',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> listNameStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'listName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> listNameEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'listName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> listNameContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'listName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> listNameMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'listName',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> listNameIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'listName',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterFilterCondition>
-      listNameIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'listName',
-        value: '',
-      ));
-    });
-  }
-
   QueryBuilder<Scripture, Scripture, QAfterFilterCondition> referenceEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -854,21 +663,22 @@ extension ScriptureQueryObject
     on QueryBuilder<Scripture, Scripture, QFilterCondition> {}
 
 extension ScriptureQueryLinks
-    on QueryBuilder<Scripture, Scripture, QFilterCondition> {}
+    on QueryBuilder<Scripture, Scripture, QFilterCondition> {
+  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> collection(
+      FilterQuery<ScriptureList> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'collection');
+    });
+  }
+
+  QueryBuilder<Scripture, Scripture, QAfterFilterCondition> collectionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'collection', 0, true, 0, true);
+    });
+  }
+}
 
 extension ScriptureQuerySortBy on QueryBuilder<Scripture, Scripture, QSortBy> {
-  QueryBuilder<Scripture, Scripture, QAfterSortBy> sortByListName() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'listName', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterSortBy> sortByListNameDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'listName', Sort.desc);
-    });
-  }
-
   QueryBuilder<Scripture, Scripture, QAfterSortBy> sortByReference() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'reference', Sort.asc);
@@ -908,18 +718,6 @@ extension ScriptureQuerySortBy on QueryBuilder<Scripture, Scripture, QSortBy> {
 
 extension ScriptureQuerySortThenBy
     on QueryBuilder<Scripture, Scripture, QSortThenBy> {
-  QueryBuilder<Scripture, Scripture, QAfterSortBy> thenByListName() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'listName', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Scripture, Scripture, QAfterSortBy> thenByListNameDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'listName', Sort.desc);
-    });
-  }
-
   QueryBuilder<Scripture, Scripture, QAfterSortBy> thenByReference() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'reference', Sort.asc);
@@ -971,13 +769,6 @@ extension ScriptureQuerySortThenBy
 
 extension ScriptureQueryWhereDistinct
     on QueryBuilder<Scripture, Scripture, QDistinct> {
-  QueryBuilder<Scripture, Scripture, QDistinct> distinctByListName(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'listName', caseSensitive: caseSensitive);
-    });
-  }
-
   QueryBuilder<Scripture, Scripture, QDistinct> distinctByReference(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1005,12 +796,6 @@ extension ScriptureQueryProperty
   QueryBuilder<Scripture, int, QQueryOperations> scriptureIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'scriptureId');
-    });
-  }
-
-  QueryBuilder<Scripture, String, QQueryOperations> listNameProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'listName');
     });
   }
 

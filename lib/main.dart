@@ -1,7 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:logger/logger.dart';
@@ -9,6 +8,7 @@ import 'package:isar/isar.dart';
 import 'package:scripture_app/providers.dart';
 import 'package:scripture_app/scripture_form.dart';
 import 'collections/scripture.dart';
+import 'collections/scripturelist.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -37,7 +37,7 @@ void main() async {
   analytics.setUserProperty(name: "isDebug", value: kDebugMode.toString());
   Duration minimumFetchInternal = const Duration(hours: 12);
   if (kDebugMode) {
-    // TODO: Consider purpose of push and permissiosn and fcm channel and icon
+    // TODO: Consider purpose of push and permission and fcm channel and icon
     final fcmToken = await FirebaseMessaging.instance.getToken();
     log.d('fcmToken = $fcmToken');
     // note test FCM not working under my pixel 6 yet
@@ -147,7 +147,6 @@ class MyHomePage extends ConsumerStatefulWidget {
 }
 
 class _MyHomePageState extends ConsumerState<MyHomePage> {
-  Future<List<Scripture>>? scriptureList;
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
 
   // TODO: Finish abstracting this out so no longer tightly coupled.
@@ -159,8 +158,8 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   }
 
   void getInitialList() {
-    isar.scriptures.where().listNameProperty().findFirst().then((value) {
-      ref.read(currentListProvider.notifier).setCurrentList(value ?? "My List");
+    isar.scriptureLists.where().findFirst().then((value) {
+      ref.read(currentListProvider.notifier).setCurrentList(value?.name ?? "My List");
       refreshScriptureList();
     }
     );
@@ -168,26 +167,22 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   // TODO: Get rid of setState() calls when rebuild happens bc riverpod which is most of them.
   Future<List<Scripture>> getScriptureList (String listName) async {
-    return await isar.scriptures.filter()
-        .listNameMatches(listName)
+    return await isar.scriptures
+        .filter()
+        .collection((q) => q.nameEqualTo(listName))
         .findAll();
   }
 
   void refreshScriptureList() {
-    scriptureList = getScriptureList(ref.watch(currentListProvider));
     setState(() {});
   }
 
-  Future<List<String>> getCollections () async {
-    return await isar.scriptures.where()
-    .distinctByListName()
-        .listNameProperty()
-        .findAll();
+  Future<List<ScriptureList>> getCollections () async {
+    return await isar.scriptureLists.where().findAll();
   }
 
   void switchCollections (String newList) async {
     analytics.logEvent(name: "SwitchedCollection");
-    scriptureList = getScriptureList(newList);
     ref.read(currentListProvider.notifier).setCurrentList(newList);
   }
 
@@ -251,7 +246,6 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   }
   Future<void> _pullRefresh() async {
     analytics.logEvent(name: "PullToRefresh");
-    scriptureList = getScriptureList(ref.read(currentListProvider));
     setState((){});
   }
 
@@ -271,7 +265,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
       appBar: AppBar(
         title: const Text('Collections'),
       ),
-      body: FutureBuilder<List<String>>(
+      body: FutureBuilder<List<ScriptureList>>(
         future: getCollections(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
@@ -279,11 +273,10 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) {
                   return ListTile(
-                    // TODO: maybe throw in an asPascalCase
-                    title: Text(snapshot.data![index]),
-                    enabled: (snapshot.data![index] != ref.watch(currentListProvider)),
+                    title: Text(snapshot.data![index].name),
+                    enabled: (snapshot.data![index].name != ref.watch(currentListProvider)),
                     onTap: () async {
-                      switchCollections(snapshot.data![index]);
+                      switchCollections(snapshot.data![index].name);
                       Navigator.of(context).pop();
                     },
                   );
@@ -302,7 +295,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   // List of scriptures (tappable + slidable)
   Widget scriptureWidget() {
     return FutureBuilder<List<Scripture>>(
-      future: scriptureList,
+      future: getScriptureList(ref.watch(currentListProvider)),
       builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.done) {
         if (snapshot.hasError) {

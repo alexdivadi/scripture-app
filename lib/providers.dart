@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:scripture_app/collections/scripturelist.dart';
 import 'package:scripture_app/scripture_form.dart';
 
 import 'collections/scripture.dart';
@@ -63,10 +64,24 @@ class Database {
    return  isar.scriptures.count();
   }
 
+  Future<ScriptureList?> getCollection(String listName) async {
+    return isar.scriptureLists.filter().nameEqualTo(listName).findFirst();
+  }
+  Future<List<ScriptureList>> getCollections () async {
+    return isar.scriptureLists.where().findAll();
+  }
+  Future<List<Scripture>> getScriptureList (String listName) async {
+    return isar.scriptures
+        .filter()
+        .collection((q) => q.nameEqualTo(listName))
+        .findAll();
+  }
+  
+
   Future<void> init() async {
     final dir = await getApplicationSupportDirectory();
     _isar = await Isar.open(
-        [ScriptureSchema],
+        [ScriptureSchema,ScriptureListSchema],
         directory: dir.path,
         inspector: true);
   }
@@ -75,6 +90,16 @@ class Database {
     await isar.writeTxn(() async {
       await isar.scriptures.put(scripture);
     });
+  }
+  void writeCollection(ScriptureList scriptureList) {
+    isar.writeTxnSync(() {
+      isar.scriptureLists.putSync(scriptureList);
+    });
+  }
+  void writeCollectionFromString(String listName) {
+    final newList = ScriptureList()
+        ..name = listName;
+    writeCollection(newList);
   }
 
 }
@@ -99,20 +124,29 @@ Future<void> getResult(GetResultRef ref, String text, String currentList) async 
       String reference = result[i];
       final json = await fetchScripture(reference);
 
+      Database database = ref.read(databaseProvider);
+      ScriptureList? currentCollection;
+
+      try {
+        database.writeCollectionFromString(currentList);
+      } catch (e) {
+      }
+      finally {
+        currentCollection = await database.getCollection(currentList);
+      }
+
       final newScripture = Scripture()
         ..reference = json['reference']
         ..text = json['text']
         ..translation = json['translation_name']
-        ..listName = currentList;
+        ..collection.value = currentCollection;
 
-      Database database = ref.read(databaseProvider);
       await database.writeScripture(newScripture);
-
 
       display = "Added ${result[i]}";
       analytics.logEvent(name: "Added", parameters: {'verse': result[i]});
     } catch (e) {
-      display = "A scripture was not found";
+      display = e.toString();
       break;
     }
   }

@@ -55,7 +55,7 @@ final databaseProvider = Provider<Database>(
       const bool.fromEnvironment('dart.vm.product') ? null : $databaseHash,
 );
 typedef DatabaseRef = ProviderRef<Database>;
-String $getResultHash() => r'aa3d154cc74e8f5a14f6ff89d9f68918604b5b88';
+String $getResultHash() => r'acc815689de64b7b1e04140d13091cc5e7a20bae';
 
 /// See also [getResult].
 class GetResultProvider extends AutoDisposeFutureProvider<void> {
