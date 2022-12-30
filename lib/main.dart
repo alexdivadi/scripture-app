@@ -49,6 +49,9 @@ void main() async {
   ));
   await remoteConfig.fetchAndActivate();
   String csv = remoteConfig.getString("csvVerses");
+  String csvHope = remoteConfig.getString("hopeVersesCsv");
+  String csvLove = remoteConfig.getString("loveVersesCsv");
+
   log.d('csv=$csv');
 
 
@@ -62,6 +65,8 @@ void main() async {
     if (numScriptures == 0) {
       // TODO: Clean this up a bit to happen within an initDatabase or similar)
       await container.read(getResultProvider.call(csv, 'My List').future);
+      await container.read(getResultProvider.call(csvHope, 'Hope').future);
+      await container.read(getResultProvider.call(csvLove, 'Love').future);
     }
   }
   runApp(UncontrolledProviderScope(
