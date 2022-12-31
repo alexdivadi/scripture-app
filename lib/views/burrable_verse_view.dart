@@ -84,15 +84,14 @@ class MyBlur extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Blur(
     blur: shouldBlur ?  3.2 : 0,
-    blurColor: Theme.of(context).primaryColor,
+    blurColor: Colors.white,
     child: Container(
       decoration: BoxDecoration(
-          color: Theme.of(context).accentColor,
-          border: Border.all(color: Colors.green),
+          border: Border.all(color: Colors.white),
           borderRadius: const BorderRadius.all(Radius.circular(20))
       ),
       padding: const EdgeInsets.all(8.0),
-      child: Text(text, style: const TextStyle(color: Colors.white),),
+      child: Text(text),
     ),
   );
 }
