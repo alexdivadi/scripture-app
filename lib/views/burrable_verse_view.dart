@@ -13,18 +13,22 @@ class BlurPage extends StatefulWidget {
 }
 
 class _BlurPageState extends State<BlurPage> {
-  double blurValue = 10;
+  //double blurValue = 10;
+  double blurValue = 0;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-        padding: const EdgeInsets.all(1.0),
+    return Container(
+        padding: const EdgeInsets.all(4.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
-            Wrap(
+            (blurValue == 0.0) ? Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(widget.text),
+            ) : Wrap(
                 children:
-                'He is before all things and in him all things hold together'.split(' ').map((e) {
+                widget.text.split(' ').map((e) {
                   return MyBlur(e, shouldBlur: shouldBlur(blurValue));
                 }).toList()
             ),
@@ -35,12 +39,12 @@ class _BlurPageState extends State<BlurPage> {
                     setState(() {
                       blurValue++;
                     });
-                  }, child: const Text('Blur More'),),
+                  }, child: Text(getBlurMoreText(blurValue)),),
                   TextButton(onPressed: () {
                     setState(() {
                       blurValue--;
                     });
-                  }, child: const Text('Blur Less'),),
+                  }, child: Text(getBlurLessText(blurValue)),),
 
                 ]
             )
@@ -50,7 +54,16 @@ class _BlurPageState extends State<BlurPage> {
       );
   }
 }
+String getBlurMoreText(double blurValue) {
+  if (blurValue == 0) return 'Blur';
+  if (blurValue == 100) return '';
+  return 'Blur more';
+}
 
+String getBlurLessText(double blurValue) {
+  if (blurValue == 0) return '';
+  return 'Blur less';
+}
 bool shouldBlur(double blurValue) => Random().nextInt(20) < blurValue.toInt();
 
 class MyBlur extends StatelessWidget {
