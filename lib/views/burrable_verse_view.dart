@@ -40,7 +40,12 @@ class _BlurPageState extends State<BlurPage> {
                     setState(() {
                       FirebaseAnalytics.instance.logEvent(name: "BlurMoreTapped", parameters: {'blurValue': blurValue});
                       FirebaseAnalytics.instance.setUserProperty(name: "HasBlurred", value: "true");
-                      blurValue++;
+                      if (blurValue == 0) {
+                        // make sure at least one word is blurred when you start.
+                        blurValue = 2;
+                      } else {
+                        blurValue++;
+                      }
                     });
                   }, child: Text(getBlurMoreText(blurValue)),),
                   TextButton(onPressed: () {
