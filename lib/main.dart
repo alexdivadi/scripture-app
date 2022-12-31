@@ -1,3 +1,4 @@
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
@@ -100,41 +101,57 @@ class _FutureItemTileState extends State<FutureItemTile> {
         onTap: () => showDialog<String>(
                 context: context,
                 builder: (BuildContext context) {
-                  return SimpleDialog(
-                    children: [
-                      Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 10.0),
-                                  child: Text("${widget.data.reference} \n(${widget.data.translation})", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),),
-                                ),),
-                              Container(
-                                alignment: Alignment.topRight,
-                                child: IconButton(
-                                  onPressed: () => Share.share("${widget.data.text}\n${widget.data.reference} (${widget.data.translation})"),
-                                  icon: const Icon(Icons.share),
-                                  iconSize: 30,
-                                  color: Colors.lightBlueAccent,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Text("${widget.data.text}\n", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20))
-                            ,),
-                        ]
-                      )
-                    ],
-                  );
+                  return VerseDialog(scripture: widget.data);
                 }
             ),
         title: Text(widget.data.reference),
     );
     }
+}
+
+class VerseDialog extends StatelessWidget {
+  const VerseDialog({
+    Key? key, required this.scripture
+  }) : super(key: key);
+
+ final Scripture scripture;
+ String get reference => scripture.reference;
+ String get translation => scripture.translation;
+ String get text => scripture.text;
+
+  @override
+  Widget build(BuildContext context) {
+    return SimpleDialog(
+      children: [
+        Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 10.0),
+                    child: Text("$reference \n($translation)", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),),
+                  ),),
+                Container(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    onPressed: () => Share.share("$text\n$reference ($translation)"),
+                    icon: const Icon(Icons.share),
+                    iconSize: 30,
+                    color: Colors.lightBlueAccent,
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Text("$text\n", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 20))
+              ,),
+          ]
+        )
+      ],
+    );
+  }
 }
 
 class MyHomePage extends ConsumerStatefulWidget {
