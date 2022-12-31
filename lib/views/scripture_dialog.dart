@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scripture_app/views/burrable_verse_view.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../collections/scripture.dart';
@@ -31,8 +32,8 @@ class VerseDialog extends StatelessWidget {
                   ),
                 ],
               ),
-              Padding(padding: const EdgeInsets.all(10),
-                child: Text("$text\n", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 20))),
+              BlurPage(text: text),
+              //Padding(padding: const EdgeInsets.all(10), child: Text("$text\n", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 20))),
             ]
         )
       ],

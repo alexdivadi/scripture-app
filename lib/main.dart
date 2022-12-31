@@ -9,6 +9,7 @@ import 'package:logger/logger.dart';
 import 'package:isar/isar.dart';
 import 'package:scripture_app/providers.dart';
 import 'package:scripture_app/scripture_form.dart';
+import 'package:scripture_app/views/scripture_dialog.dart';
 import 'collections/scripture.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -95,63 +96,12 @@ class _FutureItemTileState extends State<FutureItemTile> {
   bool isSelected = false;
 
   @override
-  Widget build(BuildContext context) {
-    return  ListTile(
-        selected: isSelected,
-        onTap: () => showDialog<String>(
-                context: context,
-                builder: (BuildContext context) {
-                  return VerseDialog(scripture: widget.data);
-                }
+  Widget build(BuildContext context) => ListTile(selected: isSelected,
+        onTap: () => showDialog<String>(context: context,
+                builder: (BuildContext context) => VerseDialog(scripture: widget.data)
             ),
         title: Text(widget.data.reference),
     );
-    }
-}
-
-class VerseDialog extends StatelessWidget {
-  const VerseDialog({
-    Key? key, required this.scripture
-  }) : super(key: key);
-
- final Scripture scripture;
- String get reference => scripture.reference;
- String get translation => scripture.translation;
- String get text => scripture.text;
-
-  @override
-  Widget build(BuildContext context) {
-    return SimpleDialog(
-      children: [
-        Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 10.0),
-                    child: Text("$reference \n($translation)", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),),
-                  ),),
-                Container(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    onPressed: () => Share.share("$text\n$reference ($translation)"),
-                    icon: const Icon(Icons.share),
-                    iconSize: 30,
-                    color: Colors.lightBlueAccent,
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Text("$text\n", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 20))
-              ,),
-          ]
-        )
-      ],
-    );
-  }
 }
 
 class MyHomePage extends ConsumerStatefulWidget {
