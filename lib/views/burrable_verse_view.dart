@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:blur/blur.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 
 class BlurPage extends StatefulWidget {
@@ -37,11 +38,15 @@ class _BlurPageState extends State<BlurPage> {
                 [
                   TextButton(onPressed: () {
                     setState(() {
+                      FirebaseAnalytics.instance.logEvent(name: "BlurMoreTapped", parameters: {'blurValue': blurValue});
+                      FirebaseAnalytics.instance.setUserProperty(name: "HasBlurred", value: "true");
                       blurValue++;
                     });
                   }, child: Text(getBlurMoreText(blurValue)),),
                   TextButton(onPressed: () {
                     setState(() {
+                      FirebaseAnalytics.instance.logEvent(name: "BlurLessTapped", parameters: {'blurValue': blurValue});
+
                       blurValue--;
                     });
                   }, child: Text(getBlurLessText(blurValue)),),
@@ -74,14 +79,15 @@ class MyBlur extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Blur(
     blur: shouldBlur ?  3.2 : 0,
-    blurColor: Colors.white,
+    blurColor: Theme.of(context).primaryColor,
     child: Container(
       decoration: BoxDecoration(
-          border: Border.all(color: Colors.white),
+          color: Theme.of(context).accentColor,
+          border: Border.all(color: Colors.green),
           borderRadius: const BorderRadius.all(Radius.circular(20))
       ),
       padding: const EdgeInsets.all(8.0),
-      child: Text(text),
+      child: Text(text, style: const TextStyle(color: Colors.white),),
     ),
   );
 }
