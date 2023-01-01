@@ -55,13 +55,28 @@ void main() async {
   String csv = remoteConfig.getString("csvVerses");
   String csvHope = remoteConfig.getString("hopeVersesCsv");
   String csvLove = remoteConfig.getString("loveVersesCsv");
-
-  log.d('csv=$csv');
-
-
   final container = ProviderContainer();
   final database = container.read(databaseProvider);
   await database.init();
+  log.d('csv=$csv');
+  String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
+  log.d('collectonNamesCsv=$collectionNamesCsv');
+  collectionNamesCsv.split(',').forEach((collectionName) async {
+    log.d('collectionName=$collectionName');
+    String collectionCsv = remoteConfig.getString(collectionName);
+    log.d('collectionCsv=$collectionCsv');
+    if (collectionCsv.isEmpty) {
+      bool isEmpty = (await database.isListEmpty(collectionName));
+      log.d('isEmpty=$isEmpty');
+      if (isEmpty) {
+        await container.read(getResultProvider.call(csv, collectionName).future);
+      }
+    }
+  });
+
+
+
+
 
   if (csv.isNotEmpty) {
     int numScriptures = await database.getScriptureCount();
@@ -69,8 +84,8 @@ void main() async {
     if (numScriptures == 0) {
       // TODO: Clean this up a bit to happen within an initDatabase or similar)
       await container.read(getResultProvider.call(csv, 'My List').future);
-      await container.read(getResultProvider.call(csvHope, 'Hope').future);
-      await container.read(getResultProvider.call(csvLove, 'Love').future);
+      //await container.read(getResultProvider.call(csvHope, 'Hope').future);
+      //await container.read(getResultProvider.call(csvLove, 'Love').future);
     }
   }
   runApp(UncontrolledProviderScope(

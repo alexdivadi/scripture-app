@@ -63,6 +63,8 @@ class Database {
    return  isar.scriptures.count();
   }
 
+  Future<bool> isListEmpty(String listName) async => await (isar.scriptures.where().listNameEqualTo(listName).count()) > 0;
+
   Future<void> init() async {
     final dir = await getApplicationSupportDirectory();
     _isar = await Isar.open(
