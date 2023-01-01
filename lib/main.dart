@@ -129,13 +129,17 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   }
 
   Future<void> getInitialList() async {
+    Database database = ref.read(databaseProvider);
+    String currentList = "MyList";
+    if (await database.isListEmpty("MyList")) {
+      isar.scriptures.where().listNameProperty().findFirst().then((value) {
+        currentList = value ?? 'New List';
+      });
+    }
 
-    isar.scriptures.where().listNameProperty().findFirst().then((value) {
-      ref.read(currentListProvider.notifier).setCurrentList(value ?? "My List");
+      ref.read(currentListProvider.notifier).setCurrentList(currentList);
       refreshScriptureList();
     }
-    );
-  }
 
   // TODO: Get rid of setState() calls when rebuild happens bc riverpod which is most of them.
   Future<List<Scripture>> getScriptureList (String listName) async {
