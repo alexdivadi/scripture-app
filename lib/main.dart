@@ -61,15 +61,16 @@ void main() async {
   log.d('csv=$csv');
   String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
   log.d('collectonNamesCsv=$collectionNamesCsv');
-  collectionNamesCsv.split(',').forEach((collectionName) async {
+  collectionNamesCsv.split(',').forEach((e) async {
+    String collectionName = e.trim();
     log.d('collectionName=$collectionName');
     String collectionCsv = remoteConfig.getString(collectionName);
     log.d('collectionCsv=$collectionCsv');
-    if (collectionCsv.isEmpty) {
+    if (collectionCsv.isNotEmpty) {
       bool isEmpty = (await database.isListEmpty(collectionName));
       log.d('isEmpty=$isEmpty');
       if (isEmpty) {
-        await container.read(getResultProvider.call(csv, collectionName).future);
+        await container.read(getResultProvider.call(collectionCsv, collectionName).future);
       }
     }
   });
@@ -84,8 +85,8 @@ void main() async {
     if (numScriptures == 0) {
       // TODO: Clean this up a bit to happen within an initDatabase or similar)
       await container.read(getResultProvider.call(csv, 'My List').future);
-      //await container.read(getResultProvider.call(csvHope, 'Hope').future);
-      //await container.read(getResultProvider.call(csvLove, 'Love').future);
+      await container.read(getResultProvider.call(csvHope, 'Hope').future);
+      await container.read(getResultProvider.call(csvLove, 'Love').future);
     }
   }
   runApp(UncontrolledProviderScope(
