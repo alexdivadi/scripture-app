@@ -82,7 +82,6 @@ class ScriptureFormState extends ConsumerState<ScriptureForm> {
                 // TODO: Better fix than this
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                    // TODO: gorouter, don't pass around isar, riverpod
                       builder: (context) => const MyHomePage(title: 'Scripture App')
                   ),
                 );
