@@ -52,23 +52,15 @@ void main() async {
     minimumFetchInterval: minimumFetchInternal,
   ));
   await remoteConfig.fetchAndActivate();
-  String csv = remoteConfig.getString("csvVerses");
-  String csvHope = remoteConfig.getString("hopeVersesCsv");
-  String csvLove = remoteConfig.getString("loveVersesCsv");
   final container = ProviderContainer();
   final database = container.read(databaseProvider);
   await database.init();
-  log.d('csv=$csv');
   String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
-  log.d('collectonNamesCsv=$collectionNamesCsv');
   collectionNamesCsv.split(',').forEach((e) async {
     String collectionName = e.trim();
-    log.d('collectionName=$collectionName');
     String collectionCsv = remoteConfig.getString(collectionName);
-    log.d('collectionCsv=$collectionCsv');
     if (collectionCsv.isNotEmpty) {
       bool isEmpty = (await database.isListEmpty(collectionName));
-      log.d('isEmpty=$isEmpty');
       if (isEmpty) {
         await container.read(getResultProvider.call(collectionCsv, collectionName).future);
       }
@@ -76,19 +68,6 @@ void main() async {
   });
 
 
-
-
-
-  if (csv.isNotEmpty) {
-    int numScriptures = await database.getScriptureCount();
-    log.d('numScriptures=$numScriptures');
-    if (numScriptures == 0) {
-      // TODO: Clean this up a bit to happen within an initDatabase or similar)
-      await container.read(getResultProvider.call(csv, 'My List').future);
-      await container.read(getResultProvider.call(csvHope, 'Hope').future);
-      await container.read(getResultProvider.call(csvLove, 'Love').future);
-    }
-  }
   runApp(UncontrolledProviderScope(
     container: container,
     child: const MyApp(),
@@ -147,7 +126,8 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
     super.initState();
   }
 
-  void getInitialList() {
+  Future<void> getInitialList() async {
+
     isar.scriptures.where().listNameProperty().findFirst().then((value) {
       ref.read(currentListProvider.notifier).setCurrentList(value ?? "My List");
       refreshScriptureList();
