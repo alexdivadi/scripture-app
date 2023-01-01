@@ -1,3 +1,4 @@
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,7 @@ import 'package:logger/logger.dart';
 import 'package:isar/isar.dart';
 import 'package:scripture_app/providers.dart';
 import 'package:scripture_app/scripture_form.dart';
+import 'package:scripture_app/views/scripture_dialog.dart';
 import 'collections/scripture.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -94,47 +96,12 @@ class _FutureItemTileState extends State<FutureItemTile> {
   bool isSelected = false;
 
   @override
-  Widget build(BuildContext context) {
-    return  ListTile(
-        selected: isSelected,
-        onTap: () => showDialog<String>(
-                context: context,
-                builder: (BuildContext context) {
-                  return SimpleDialog(
-                    children: [
-                      Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 10.0),
-                                  child: Text("${widget.data.reference} \n(${widget.data.translation})", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),),
-                                ),),
-                              Container(
-                                alignment: Alignment.topRight,
-                                child: IconButton(
-                                  onPressed: () => Share.share("${widget.data.text}\n${widget.data.reference} (${widget.data.translation})"),
-                                  icon: const Icon(Icons.share),
-                                  iconSize: 30,
-                                  color: Colors.lightBlueAccent,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Text("${widget.data.text}\n", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20))
-                            ,),
-                        ]
-                      )
-                    ],
-                  );
-                }
+  Widget build(BuildContext context) => ListTile(selected: isSelected,
+        onTap: () => showDialog<String>(context: context,
+                builder: (BuildContext context) => VerseDialog(scripture: widget.data)
             ),
         title: Text(widget.data.reference),
     );
-    }
 }
 
 class MyHomePage extends ConsumerStatefulWidget {
