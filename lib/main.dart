@@ -58,7 +58,9 @@ void main() async {
   String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
   collectionNamesCsv.split(',').forEach((e) async {
     String collectionName = e.trim();
-    String collectionCsv = remoteConfig.getString(collectionName);
+    // TODO: Think  more about format, replace space with undersccore etc.
+    // this is for "My List" can be "MyList" bc parameter doesnt allow spaces it looks like
+    String collectionCsv = remoteConfig.getString(collectionName.replaceAll(" ", ""));
     if (collectionCsv.isNotEmpty) {
       bool isEmpty = (await database.isListEmpty(collectionName));
       if (isEmpty) {
