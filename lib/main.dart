@@ -15,7 +15,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 
 var log = Logger(
   printer: PrettyPrinter(
@@ -52,15 +51,33 @@ void main() async {
     minimumFetchInterval: minimumFetchInternal,
   ));
   await remoteConfig.fetchAndActivate();
+  String csv = remoteConfig.getString("first_install_list");
+  log.d('csv=$csv');
+
+
   final container = ProviderContainer();
   final database = container.read(databaseProvider);
   await database.init();
+
+
+  // if entire database emprty like first install, and there's a remote list, use a remote lixst
+  if (csv.isEmpty) {
+    // even if issue with firebase, give some scriptures
+    csv = 'Col 1:17, Matt 6:33, Phil 4:13';
+  }
+  int numScriptures = await database.getScriptureCount();
+  log.d('numScriptures=$numScriptures');
+  if (numScriptures == 0) {
+      // TODO: Clean this up a bit to happen within an initDatabase or similar)
+      await container.read(getResultProvider.call(csv, 'My List').future);
+  }
+
+
   String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
   collectionNamesCsv.split(',').forEach((e) async {
     String collectionName = e.trim();
-    // TODO: Think  more about format, replace space with undersccore etc.
-    // this is for "My List" can be "MyList" bc parameter doesnt allow spaces it looks like
-    String collectionCsv = remoteConfig.getString(collectionName.replaceAll(" ", ""));
+    // Word Of God" would be "Word_of_God" bc can't have space in remote config it looks like
+    String collectionCsv = remoteConfig.getString(collectionName.replaceAll(" ", "_"));
     if (collectionCsv.isNotEmpty) {
       bool isEmpty = (await database.isListEmpty(collectionName));
       if (isEmpty) {
@@ -128,18 +145,13 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
     super.initState();
   }
 
-  Future<void> getInitialList() async {
-    Database database = ref.read(databaseProvider);
-    String currentList = "MyList";
-    if (await database.isListEmpty("MyList")) {
-      isar.scriptures.where().listNameProperty().findFirst().then((value) {
-        currentList = value ?? 'New List';
-      });
-    }
-
-      ref.read(currentListProvider.notifier).setCurrentList(currentList);
+  void getInitialList() {
+    isar.scriptures.where().listNameProperty().findFirst().then((value) {
+      ref.read(currentListProvider.notifier).setCurrentList(value ?? "My List");
       refreshScriptureList();
     }
+    );
+  }
 
   // TODO: Get rid of setState() calls when rebuild happens bc riverpod which is most of them.
   Future<List<Scripture>> getScriptureList (String listName) async {
