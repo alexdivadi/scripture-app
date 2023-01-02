@@ -15,7 +15,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 
 var log = Logger(
   printer: PrettyPrinter(
@@ -52,7 +51,7 @@ void main() async {
     minimumFetchInterval: minimumFetchInternal,
   ));
   await remoteConfig.fetchAndActivate();
-  String csv = remoteConfig.getString("csvVerses");
+  String csv = remoteConfig.getString("first_install_list");
   log.d('csv=$csv');
 
 
@@ -60,14 +59,34 @@ void main() async {
   final database = container.read(databaseProvider);
   await database.init();
 
-  if (csv.isNotEmpty) {
-    int numScriptures = await database.getScriptureCount();
-    log.d('numScriptures=$numScriptures');
-    if (numScriptures == 0) {
+
+  // if entire database emprty like first install, and there's a remote list, use a remote lixst
+  if (csv.isEmpty) {
+    // even if issue with firebase, give some scriptures
+    csv = 'Col 1:17, Matt 6:33, Phil 4:13';
+  }
+  int numScriptures = await database.getScriptureCount();
+  log.d('numScriptures=$numScriptures');
+  if (numScriptures == 0) {
       // TODO: Clean this up a bit to happen within an initDatabase or similar)
       await container.read(getResultProvider.call(csv, 'My List').future);
-    }
   }
+
+
+  String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
+  collectionNamesCsv.split(',').forEach((e) async {
+    String collectionName = e.trim();
+    // Word Of God" would be "Word_of_God" bc can't have space in remote config it looks like
+    String collectionCsv = remoteConfig.getString(collectionName.replaceAll(" ", "_"));
+    if (collectionCsv.isNotEmpty) {
+      bool isEmpty = (await database.isListEmpty(collectionName));
+      if (isEmpty) {
+        await container.read(getResultProvider.call(collectionCsv, collectionName).future);
+      }
+    }
+  });
+
+
   runApp(UncontrolledProviderScope(
     container: container,
     child: const MyApp(),

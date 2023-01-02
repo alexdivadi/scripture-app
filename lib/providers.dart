@@ -63,6 +63,8 @@ class Database {
    return  isar.scriptures.count();
   }
 
+  Future<bool> isListEmpty(String listName) async => await (isar.scriptures.where().listNameEqualTo(listName).count()) == 0;
+
   Future<void> init() async {
     final dir = await getApplicationSupportDirectory();
     _isar = await Isar.open(
@@ -89,7 +91,6 @@ Future<void> getResult(GetResultRef ref, String text, String currentList) async 
   log.d(text);
   List<String> result = text.split(',');
   if (result.isEmpty) {
-    analytics.logEvent(name: "ErrorGettingScripture", parameters: {'textString': text});
     display = "Error getting scripture";
     return;
   }
@@ -97,6 +98,7 @@ Future<void> getResult(GetResultRef ref, String text, String currentList) async 
   for (int i = 0; i < result.length; i++) {
     try {
       String reference = result[i];
+      reference = reference.trim(); // uf user pus "John 1:1, John 1:2" we def don't want it to fail bc space.
       final json = await fetchScripture(reference);
 
       final newScripture = Scripture()
@@ -112,7 +114,8 @@ Future<void> getResult(GetResultRef ref, String text, String currentList) async 
       display = "Added ${result[i]}";
       analytics.logEvent(name: "Added", parameters: {'verse': result[i]});
     } catch (e) {
-      display = "A scripture was not found";
+      display = 'the scripture "$text"" was not found';
+      analytics.logEvent(name: "ErrorGettingScripture", parameters: {'textString': text});
       break;
     }
   }
