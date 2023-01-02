@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logger/logger.dart';
 import 'package:isar/isar.dart';
 import 'package:scripture_app/providers.dart';
@@ -15,6 +16,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 
 var log = Logger(
   printer: PrettyPrinter(
@@ -123,7 +125,7 @@ class _FutureItemTileState extends State<FutureItemTile> {
     );
 }
 
-class MyHomePage extends ConsumerStatefulWidget {
+class MyHomePage extends StatefulHookConsumerWidget {
   const MyHomePage({super.key, required this.title});
 
   final String title;
@@ -180,7 +182,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController newNameController = TextEditingController();
+    TextEditingController newNameController = useTextEditingController();
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
