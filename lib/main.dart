@@ -69,6 +69,8 @@ void main() async {
   }
   int numScriptures = await database.getScriptureCount();
   log.d('numScriptures=$numScriptures');
+  // this is pretty safe, default list is only loaded when entire db empty
+  // so as long as db is not empty "My List" can be renamed/modified etc
   if (numScriptures == 0) {
       // TODO: Clean this up a bit to happen within an initDatabase or similar)
       await container.read(getResultProvider.call(csv, 'My List').future);
@@ -140,7 +142,8 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
 
   // TODO: Finish abstracting this out so no longer tightly coupled.
-  Isar get isar => ref.read(databaseProvider).isar;
+  Isar get isar => database.isar;
+  Database get database => ref.read(databaseProvider);
   @override
   void initState() {
     getInitialList();
@@ -161,6 +164,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
         .listNameMatches(listName)
         .findAll();
   }
+
 
   void refreshScriptureList() {
     scriptureList = getScriptureList(ref.watch(currentListProvider));
@@ -244,7 +248,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
                           ],
                         ));
                       if (newName != null) {
-                        log.d('update db with newNmae = $newName');
+                        await renameList(newName);
                       }
                       },
                     ),
@@ -277,6 +281,13 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
       ),
     ),
     );
+  }
+
+  Future<void> renameList(String newName) async {
+    String oldName = ref.read(currentListProvider);
+    log.d('update db with newNmae = $newName');
+    await database.renameList(oldName, newName);
+    ref.read(currentListProvider.notifier).setCurrentList(newName);
   }
   Future<void> _pullRefresh() async {
     analytics.logEvent(name: "PullToRefresh");
