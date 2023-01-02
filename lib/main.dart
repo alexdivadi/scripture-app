@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logger/logger.dart';
 import 'package:isar/isar.dart';
 import 'package:scripture_app/providers.dart';
@@ -15,6 +16,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 
 var log = Logger(
   printer: PrettyPrinter(
@@ -67,6 +69,8 @@ void main() async {
   }
   int numScriptures = await database.getScriptureCount();
   log.d('numScriptures=$numScriptures');
+  // this is pretty safe, default list is only loaded when entire db empty
+  // so as long as db is not empty "My List" can be renamed/modified etc
   if (numScriptures == 0) {
       // TODO: Clean this up a bit to happen within an initDatabase or similar)
       await container.read(getResultProvider.call(csv, 'My List').future);
@@ -123,7 +127,7 @@ class _FutureItemTileState extends State<FutureItemTile> {
     );
 }
 
-class MyHomePage extends ConsumerStatefulWidget {
+class MyHomePage extends StatefulHookConsumerWidget {
   const MyHomePage({super.key, required this.title});
 
   final String title;
@@ -138,7 +142,8 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   // TODO: maybe use shared_preferences to store the last list opened whenever app is closed
 
   // TODO: Finish abstracting this out so no longer tightly coupled.
-  Isar get isar => ref.read(databaseProvider).isar;
+  Isar get isar => database.isar;
+  Database get database => ref.read(databaseProvider);
   @override
   void initState() {
     getInitialList();
@@ -160,6 +165,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
         .findAll();
   }
 
+
   void refreshScriptureList() {
     scriptureList = getScriptureList(ref.watch(currentListProvider));
     setState(() {});
@@ -180,6 +186,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    TextEditingController newNameController = useTextEditingController();
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -200,13 +207,52 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
             children: [
               Container(padding: const EdgeInsets.only(bottom: 20),
                 alignment: Alignment.topLeft,
-                child: Text(
-                  ref.watch(currentListProvider),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    overflow: TextOverflow.ellipsis,
-                    fontSize: 30,
-                  ),
+                child: Row(
+                  children: [
+                    Text(
+                      ref.watch(currentListProvider),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        overflow: TextOverflow.ellipsis,
+                        fontSize: 30,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Edit collection name',
+                      onPressed: () async {
+                        String? newName =  await showDialog<String>(
+                        context: context,
+                        builder: (BuildContext context) => AlertDialog(
+                          title: const Text('Edit List Name?'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('New name:'),
+                              TextField(controller: newNameController,)
+                            ],
+                          ),
+                          actions: <Widget>[
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                log.d('new name = ${newNameController.text}');
+                                Navigator.pop(context, newNameController.text.trim());
+                              },
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ));
+                      if (newName != null) {
+                        await renameList(newName);
+                      }
+                      },
+                    ),
+                  ],
                 ),
               ),
               Expanded(child: scriptureWidget()),
@@ -235,6 +281,13 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
       ),
     ),
     );
+  }
+
+  Future<void> renameList(String newName) async {
+    String oldName = ref.read(currentListProvider);
+    log.d('update db with newNmae = $newName');
+    await database.renameList(oldName, newName);
+    ref.read(currentListProvider.notifier).setCurrentList(newName);
   }
   Future<void> _pullRefresh() async {
     analytics.logEvent(name: "PullToRefresh");

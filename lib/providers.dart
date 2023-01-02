@@ -63,6 +63,23 @@ class Database {
    return  isar.scriptures.count();
   }
 
+  // TOOD: When database is restructured so there's a foreign key
+  // or similar and renaming a list takes only one db row
+  // make sure all tests still pass.
+  Future<bool> renameList(String oldName, String newName) async {
+    await isar.writeTxn(() async {
+      List<Scripture> scriptures = await isar.scriptures.where().listNameEqualTo(oldName).findAll();
+      // TODO: In future use UDF and immutable classes for most everything
+      for (var element in scriptures) {
+        element.listName = newName;
+      }
+      // update all since they already exist.
+      await isar.scriptures.putAll(scriptures);
+    });
+    return true;
+  }
+
+
   Future<bool> isListEmpty(String listName) async => await (isar.scriptures.where().listNameEqualTo(listName).count()) == 0;
 
   Future<void> init() async {

@@ -2,6 +2,10 @@
 
 Ourverses app
 ## Release notes/log
+
+0.9.2. TODO: Share via dynamic links - install the app when share verse, on wah to instant app
+
+0.9.1 Edit feature for name of verse (Carina's request).  
 0.9.0 Collections from remote
 0.8.0 with blurverse
 0.7.7 includes some riverpod refactoring and single verse share feature. (and a little larger font for verse.)
