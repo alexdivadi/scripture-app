@@ -180,6 +180,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    TextEditingController newNameController = TextEditingController();
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -200,13 +201,52 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
             children: [
               Container(padding: const EdgeInsets.only(bottom: 20),
                 alignment: Alignment.topLeft,
-                child: Text(
-                  ref.watch(currentListProvider),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    overflow: TextOverflow.ellipsis,
-                    fontSize: 30,
-                  ),
+                child: Row(
+                  children: [
+                    Text(
+                      ref.watch(currentListProvider),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        overflow: TextOverflow.ellipsis,
+                        fontSize: 30,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Edit collection name',
+                      onPressed: () async {
+                        String? newName =  await showDialog<String>(
+                        context: context,
+                        builder: (BuildContext context) => AlertDialog(
+                          title: const Text('Edit List Name?'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('New name:'),
+                              TextField(controller: newNameController,)
+                            ],
+                          ),
+                          actions: <Widget>[
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                log.d('new name = ${newNameController.text}');
+                                Navigator.pop(context, newNameController.text.trim());
+                              },
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ));
+                      if (newName != null) {
+                        log.d('update db with newNmae = $newName');
+                      }
+                      },
+                    ),
+                  ],
                 ),
               ),
               Expanded(child: scriptureWidget()),
