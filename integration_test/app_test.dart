@@ -17,45 +17,41 @@ void main() {
   group('Edit Collection Name', () {
     // NOTE: These are probably good candidates for widget tests sooner than later.
 
-    testWidgets('Edit collection name and tap OK, new name shows.',
+    testWidgets('Edit collection name and tap OK, new name shows, cancel it does not',
             (tester) async {
               app.main();
               // Note: always use clock.now instead of datetime.now() esp in SUT
-              String newName = 'newName${clock.now()}';
-              await launchAndEditName(tester,newName);
-              await tester.tap(ok);
-              await tester.pumpAndSettle();
-              expect(find.text(newName), findsOneWidget);
-              await tester.pumpAndSettle(const Duration(seconds: 8));
-
-            });
-
-    testWidgets('Edit collection name and tap cancel - new name not present',
-            (tester) async {
-              app.main();
-              String newName = 'newName${clock.now()}';
-              await launchAndEditName(tester, newName);
+              String newName = 'new${clock.now().millisecondsSinceEpoch}';
+              await enterNameToEdit(tester,newName);
               await tester.tap(cancel);
               await tester.pumpAndSettle();
               expect(find.text(newName), findsNothing);
-              await tester.pumpAndSettle(const Duration(seconds: 8));
+              await enterNameToEdit(tester, newName);
+              await tester.tap(ok);
+              await tester.pumpAndSettle();
+              expect(find.text(newName), findsOneWidget);
+
             });
+
+    // todo: look into https://github.com/isar/isar#unit-tests and trying to make it separate tests
+    // instead of one e2e test.
+
   });
 }
 
 
-Future<void> launchAndEditName(WidgetTester tester, String newName) async {
+Future<void> enterNameToEdit(WidgetTester tester, String newName) async {
 
-  await tester.pumpAndSettle(const Duration(seconds: 5));
+  await tester.pumpAndSettle(const Duration(seconds: 4));
 
   expect(find.text('Scripture App', skipOffstage: true), findsOneWidget);
   expect(editButton, findsOneWidget);
   await tester.tap(editButton);
-  await tester.pumpAndSettle(const Duration(seconds: 2));
+  await tester.pumpAndSettle(const Duration(seconds: 1));
   expect (textField, findsOneWidget);
 
   await tester.enterText(textField, newName);
-  await tester.pumpAndSettle(const Duration(seconds: 2));
+  await tester.pumpAndSettle(const Duration(seconds: 1));
 
   expect(ok, findsOneWidget);
   expect(cancel, findsOneWidget);
