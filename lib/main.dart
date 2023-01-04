@@ -186,6 +186,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // The hook "useTextEditingController" handles disposing it when finished.
     TextEditingController newNameController = useTextEditingController();
     return Scaffold(
       appBar: AppBar(
