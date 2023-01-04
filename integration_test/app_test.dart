@@ -7,10 +7,13 @@ import 'package:clock/clock.dart';
 import 'package:scripture_app/main.dart' as app;
 
 var editButton = find.byTooltip('Edit collection name');
+var addButton = find.byTooltip('Add a verse');
 
 var ok = find.text('OK');
 var cancel = find.text('Cancel');
+var submit = find.text('Submit');
 var textField = find.byType(TextField);
+var textFormField = find.byType(TextFormField);
 
 Future<void> main() async {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +43,24 @@ Future<void> main() async {
     // instead of one e2e test.
 
   });
+  group('Add Verse/Collection', (){
+    testWidgets("Add a verse to MyList", (tester) async {
+      app.main();
+      await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(false);
+      // Note: always use clock.now instead of datetime.now() esp in SUT
+      String scripture = "Genesis 1:1";
+
+      await tester.tap(cancel);
+      await tester.pumpAndSettle();
+      expect(find.text(scripture), findsNothing);
+      expect(find.text('MyList'), findsOneWidget);
+      await enterVerseToAdd(tester, scripture, "MyList");
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      expect(find.text(scripture), findsOneWidget);
+    });
+  });
+
 }
 
 
@@ -58,5 +79,22 @@ Future<void> enterNameToEdit(WidgetTester tester, String newName) async {
 
   expect(ok, findsOneWidget);
   expect(cancel, findsOneWidget);
+
+}
+
+Future<void> enterVerseToAdd(WidgetTester tester, String reference, String collection) async {
+
+  await tester.pumpAndSettle(const Duration(seconds: 4));
+
+  expect(find.text('Scripture App', skipOffstage: true), findsOneWidget);
+  expect(addButton, findsOneWidget);
+  await tester.tap(addButton);
+  await tester.pumpAndSettle(const Duration(seconds: 1));
+  expect (textFormField, findsOneWidget);
+
+  await tester.enterText(textFormField, reference);
+  await tester.pumpAndSettle(const Duration(seconds: 1));
+
+  expect(submit, findsOneWidget);
 
 }
