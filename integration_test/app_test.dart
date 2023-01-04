@@ -30,6 +30,7 @@ void main() {
               await tester.tap(ok);
               await tester.pumpAndSettle();
               expect(find.text(newName), findsOneWidget);
+              // TODO: Test that switch collections shwos the correct name as grey.
 
             });
 
