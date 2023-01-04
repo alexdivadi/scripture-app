@@ -103,7 +103,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
       title: 'Our Verses',
-      theme: ThemeData(primarySwatch: Colors.orange),
+      theme: ThemeData(primarySwatch: Colors.deepPurple),
       home: const MyHomePage(title: 'Scripture App'),
     );
 }
