@@ -74,21 +74,19 @@ void main() async {
   if (numScriptures == 0) {
       // TODO: Clean this up a bit to happen within an initDatabase or similar)
       await container.read(getResultProvider.call(csv, 'My List').future);
+      String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
+      collectionNamesCsv.split(',').forEach((e) async {
+        String collectionName = e.trim();
+        // Word Of God" would be "Word_of_God" bc can't have space in remote config it looks like
+        String collectionCsv = remoteConfig.getString(collectionName.replaceAll(" ", "_"));
+        if (collectionCsv.isNotEmpty) {
+          bool isEmpty = (await database.isListEmpty(collectionName));
+          if (isEmpty) {
+            await container.read(getResultProvider.call(collectionCsv, collectionName).future);
+          }
+        }
+      });
   }
-
-
-  String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
-  collectionNamesCsv.split(',').forEach((e) async {
-    String collectionName = e.trim();
-    // Word Of God" would be "Word_of_God" bc can't have space in remote config it looks like
-    String collectionCsv = remoteConfig.getString(collectionName.replaceAll(" ", "_"));
-    if (collectionCsv.isNotEmpty) {
-      bool isEmpty = (await database.isListEmpty(collectionName));
-      if (isEmpty) {
-        await container.read(getResultProvider.call(collectionCsv, collectionName).future);
-      }
-    }
-  });
 
 
   runApp(UncontrolledProviderScope(
@@ -146,16 +144,13 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   Database get database => ref.read(databaseProvider);
   @override
   void initState() {
-    getInitialList();
+    initScriptureList();
     super.initState();
   }
 
-  void getInitialList() {
-    isar.scriptures.where().listNameProperty().findFirst().then((value) {
-      ref.read(currentListProvider.notifier).setCurrentList(value ?? "My List");
-      refreshScriptureList();
-    }
-    );
+  void initScriptureList() {
+    final String currentList = ref.read(currentListProvider) ?? isar.scriptures.where().listNameProperty().findFirst().toString();
+    switchCollections(currentList);
   }
 
   // TODO: Get rid of setState() calls when rebuild happens bc riverpod which is most of them.
