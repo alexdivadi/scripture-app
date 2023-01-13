@@ -74,19 +74,20 @@ void main() async {
   if (numScriptures == 0) {
       // TODO: Clean this up a bit to happen within an initDatabase or similar)
       await container.read(getResultProvider.call(csv, 'My List').future);
-      String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
-      collectionNamesCsv.split(',').forEach((e) async {
-        String collectionName = e.trim();
-        // Word Of God" would be "Word_of_God" bc can't have space in remote config it looks like
-        String collectionCsv = remoteConfig.getString(collectionName.replaceAll(" ", "_"));
-        if (collectionCsv.isNotEmpty) {
-          bool isEmpty = (await database.isListEmpty(collectionName));
-          if (isEmpty) {
-            await container.read(getResultProvider.call(collectionCsv, collectionName).future);
-          }
-        }
-      });
   }
+
+  String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
+  collectionNamesCsv.split(',').forEach((e) async {
+    String collectionName = e.trim();
+    // Word Of God" would be "Word_of_God" bc can't have space in remote config it looks like
+    String collectionCsv = remoteConfig.getString(collectionName.replaceAll(" ", "_"));
+    if (collectionCsv.isNotEmpty) {
+      bool isEmpty = (await database.isListEmpty(collectionName));
+      if (isEmpty) {
+        await container.read(getResultProvider.call(collectionCsv, collectionName).future);
+      }
+    }
+  });
 
 
   runApp(UncontrolledProviderScope(
