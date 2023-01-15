@@ -76,7 +76,6 @@ void main() async {
       await container.read(getResultProvider.call(csv, 'My List').future);
   }
 
-
   String collectionNamesCsv = remoteConfig.getString("collectionNamesCsv");
   collectionNamesCsv.split(',').forEach((e) async {
     String collectionName = e.trim();
@@ -146,16 +145,13 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   Database get database => ref.read(databaseProvider);
   @override
   void initState() {
-    getInitialList();
+    initScriptureList();
     super.initState();
   }
 
-  void getInitialList() {
-    isar.scriptures.where().listNameProperty().findFirst().then((value) {
-      ref.read(currentListProvider.notifier).setCurrentList(value ?? "My List");
-      refreshScriptureList();
-    }
-    );
+  void initScriptureList() {
+    final String currentList = ref.read(currentListProvider) ?? isar.scriptures.where().listNameProperty().findFirst().toString();
+    switchCollections(currentList);
   }
 
   // TODO: Get rid of setState() calls when rebuild happens bc riverpod which is most of them.
