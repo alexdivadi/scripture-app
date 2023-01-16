@@ -2,8 +2,8 @@
 
 Ourverses app
 ## Release notes/log
-
-0.9.2. TODO: Share via dynamic links - install the app when share verse, on wah to instant app
+TODO: Share via dynamic links - install the app when share verse, on wah to instant app
+0.9.2. icon, color adjustments etc.
 
 0.9.1 Edit feature for name of verse (Carina's request).  
 0.9.0 Collections from remote
