@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:clock/clock.dart';
 
@@ -8,6 +11,8 @@ import 'package:scripture_app/main.dart' as app;
 
 var editButton = find.byTooltip('Edit collection name');
 var addButton = find.byTooltip('Add a verse');
+var deleteButton = find.byIcon(Icons.delete);
+var collectionsButton = find.byTooltip('Your Collections');
 
 var ok = find.text('OK');
 var cancel = find.text('Cancel');
@@ -44,12 +49,13 @@ Future<void> main() async {
 
   });
   group('Add Verse/Collection', (){
-    testWidgets("Add a verse to MyList", (tester) async {
+    testWidgets("Add/Remove a verse to MyList", (tester) async {
       app.main();
       await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(false);
       // Note: always use clock.now instead of datetime.now() esp in SUT
       String scripture = "Genesis 1:1";
 
+      // Add the verse
       await tester.tap(cancel);
       await tester.pumpAndSettle();
       expect(find.text(scripture), findsNothing);
@@ -58,6 +64,31 @@ Future<void> main() async {
       await tester.tap(submit);
       await tester.pumpAndSettle();
       expect(find.text(scripture), findsOneWidget);
+
+      // Remove the verse
+      await tester.drag(find.text(scripture), const Offset(500.0, 0.0));
+      await tester.tap(deleteButton);
+      expect(find.text(scripture), findsNothing);
+      
+    });
+    testWidgets("Add a verse to new collection", (tester) async {
+      app.main();
+      await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(false);
+      // Note: always use clock.now instead of datetime.now() esp in SUT
+      String scripture = "Genesis 1:1";
+      String collection = "test";
+
+      await tester.tap(cancel);
+      await tester.pumpAndSettle();
+      expect(find.text(scripture), findsNothing);
+      expect(find.text('MyList'), findsOneWidget);
+      await enterVerseToAdd(tester, scripture, collection);
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      expect(find.text(scripture), findsOneWidget);
+      expect(find.text(collection), findsOneWidget);
+      await tester.tap(collectionsButton);
+      expect(find.text(collection), findsOneWidget);
     });
   });
 
