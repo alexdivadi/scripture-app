@@ -28,7 +28,7 @@ Future<void> main() async {
     testWidgets('Edit collection '
         'name and tap OK, new name shows, cancel it does not',
             (tester) async {
-              app.main();
+              await app.main();
               await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(false);
               // Note: always use clock.now instead of datetime.now() esp in SUT
               String newName = 'new${clock.now().millisecondsSinceEpoch}';

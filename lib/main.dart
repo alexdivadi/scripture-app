@@ -31,7 +31,7 @@ var log = Logger(
 
 FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(
