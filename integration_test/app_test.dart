@@ -50,17 +50,17 @@ Future<void> main() async {
   });
   group('Add Verse/Collection', (){
     testWidgets("Add/Remove a verse to MyList", (tester) async {
-      app.main();
+      await app.main();
       await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(false);
       // Note: always use clock.now instead of datetime.now() esp in SUT
       String scripture = "Genesis 1:1";
 
       // Add the verse
-      await tester.tap(cancel);
       await tester.pumpAndSettle();
       expect(find.text(scripture), findsNothing);
-      expect(find.text('MyList'), findsOneWidget);
-      await enterVerseToAdd(tester, scripture, "MyList");
+      await tester.tap(find.byType(FloatingActionButton));
+      expect(find.text('My List'), findsOneWidget);
+      await enterVerseToAdd(tester, scripture, "My List");
       await tester.tap(submit);
       await tester.pumpAndSettle();
       expect(find.text(scripture), findsOneWidget);
@@ -72,7 +72,7 @@ Future<void> main() async {
       
     });
     testWidgets("Add a verse to new collection", (tester) async {
-      app.main();
+      await app.main();
       await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(false);
       // Note: always use clock.now instead of datetime.now() esp in SUT
       String scripture = "Genesis 1:1";
