@@ -6,22 +6,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:clock/clock.dart';
+import 'package:isar/isar.dart';
 
 import 'package:scripture_app/main.dart' as app;
+import 'package:scripture_app/scripture_form.dart';
 
 var editButton = find.byTooltip('Edit collection name');
-var addButton = find.byTooltip('Add a verse');
-var deleteButton = find.byIcon(Icons.delete);
+var addButton = find.byTooltip('Add a verse', skipOffstage: false);
+var deleteButton = find.byIcon(Icons.delete, skipOffstage: false);
 var collectionsButton = find.byTooltip('Your Collections');
 
 var ok = find.text('OK');
 var cancel = find.text('Cancel');
 var submit = find.text('Submit');
 var textField = find.byType(TextField);
-var textFormField = find.byType(TextFormField);
+
+// could use hints probably instead of keys or textfields[0] and textfields[1]
+var textFieldScriptureToAdd = find.byKey(keyScriptureRefToAdd);
+var textFieldCollectionName = find.byKey(keyCollectionName);
+
 
 Future<void> main() async {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  await Isar.initializeIsarCore(download: true);
   group('Edit Collection Name', () {
     // NOTE: These are probably good candidates for widget tests sooner than later.
 
@@ -59,6 +66,7 @@ Future<void> main() async {
       await tester.pumpAndSettle();
       expect(find.text(scripture), findsNothing);
       await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle(const Duration(seconds: 2));
       expect(find.text('My List'), findsOneWidget);
       await enterVerseToAdd(tester, scripture, "My List");
       await tester.tap(submit);
@@ -78,10 +86,9 @@ Future<void> main() async {
       String scripture = "Genesis 1:1";
       String collection = "test";
 
-      await tester.tap(cancel);
       await tester.pumpAndSettle();
       expect(find.text(scripture), findsNothing);
-      expect(find.text('MyList'), findsOneWidget);
+      expect(find.text('My List'), findsOneWidget);
       await enterVerseToAdd(tester, scripture, collection);
       await tester.tap(submit);
       await tester.pumpAndSettle();
@@ -121,9 +128,9 @@ Future<void> enterVerseToAdd(WidgetTester tester, String reference, String colle
   expect(addButton, findsOneWidget);
   await tester.tap(addButton);
   await tester.pumpAndSettle(const Duration(seconds: 1));
-  expect (textFormField, findsOneWidget);
+  expect (textFieldScriptureToAdd, findsOneWidget);
 
-  await tester.enterText(textFormField, reference);
+  await tester.enterText(textFieldScriptureToAdd, reference);
   await tester.pumpAndSettle(const Duration(seconds: 1));
 
   expect(submit, findsOneWidget);

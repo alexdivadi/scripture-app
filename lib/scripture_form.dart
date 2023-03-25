@@ -3,6 +3,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:scripture_app/providers.dart';
 
 import 'main.dart';
+
+const keyScriptureRefToAdd = Key('scriptureToAdd');
+const keyCollectionName = Key('collectionName');
 class ScriptureForm extends ConsumerStatefulWidget {
   const ScriptureForm({super.key});
 
@@ -40,6 +43,7 @@ class ScriptureFormState extends ConsumerState<ScriptureForm> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
+          key: keyScriptureRefToAdd,
           controller: referenceController,
           decoration: const InputDecoration(
             labelText: "Enter comma-separated list of Scriptures",
@@ -53,6 +57,7 @@ class ScriptureFormState extends ConsumerState<ScriptureForm> {
         ),
         // TODO: Maybe hide this TextForm unless the user wants to create a new list
         TextFormField(
+          key: keyCollectionName,
           controller: collectionController,
           decoration: const InputDecoration(
             labelText: "Collection name",
