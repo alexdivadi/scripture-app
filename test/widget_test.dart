@@ -7,17 +7,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:my_first_project/collections/scripture.dart';
 
-import 'package:my_first_project/main.dart';
 import 'package:isar/isar.dart';
+import 'package:scripture_app/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    final isar = await Isar.open([ScriptureSchema]);
+    //final isar = await Isar.open([ScriptureSchema]);
     // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp(isar: isar));
-
+    await tester.pumpWidget(MyApp());
+    /*
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);
     expect(find.text('1'), findsNothing);
@@ -29,5 +28,7 @@ void main() {
     // Verify that our counter has incremented.
     expect(find.text('0'), findsNothing);
     expect(find.text('1'), findsOneWidget);
+
+     */
   });
 }

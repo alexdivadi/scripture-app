@@ -31,7 +31,7 @@ var log = Logger(
 
 FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(
@@ -282,7 +282,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   Future<void> renameList(String newName) async {
     String oldName = ref.read(currentListProvider);
-    log.d('update db with newNmae = $newName');
+    log.d('update db with newName = $newName');
     await database.renameList(oldName, newName);
     ref.read(currentListProvider.notifier).setCurrentList(newName);
   }
